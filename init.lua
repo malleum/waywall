@@ -3,8 +3,9 @@ local helpers = require("waywall.helpers")
 
 local config = {
 	input = {
-		layout = "us",
-		variant = "dvorak",
+		layout = "mcsr,us",
+		variant = ",dvorak",
+        options = "grp:ctrl_shift_toggle",
 		sensitivity = 1.0,
 		repeat_rate = 50,
 		repeat_delay = 225,
