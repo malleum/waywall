@@ -17,7 +17,7 @@ local config = {
 		},
 	},
 	theme = {
-		background_png = "/home/joshammer/.config/nixos/modules/stylix/wallpapers/grid.jpeg",
+		background_png = "/home/joshammer/.config/waywall/grid.png",
 		ninb_anchor = "topleft",
 	},
 }
