@@ -8,9 +8,9 @@
     pkgs = import inputs.nixpkgs {inherit system;};
   in {
     packages."${system}" = {
-      ninjabrainbot = pkgs.callPackage ./ninjabrain-bot.nix;
-      glfw = pkgs.callPackage ./glfw.nix;
-      waywall = pkgs.callPackage ./waywall.nix;
+      ninjabrainbot = pkgs.callPackage ./ninjabrain-bot.nix {};
+      glfw = pkgs.callPackage ./glfw.nix {};
+      waywall = pkgs.callPackage ./waywall.nix {};
     };
   };
 }
