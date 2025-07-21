@@ -5,7 +5,7 @@
 
   outputs = inputs: let
     system = "x86_64-linux";
-    pkgs = inputs.nixpkgs {inherit system;};
+    pkgs = import inputs.nixpkgs {inherit system;};
   in {
     packages."${system}" = {
       ninjabrainbot = pkgs.callPackage ./ninjabrain-bot.nix;
