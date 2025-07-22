@@ -5,7 +5,7 @@ local config = {
 	input = {
 		layout = "mcsr,us",
 		variant = ",dvorak",
-        options = "grp:ctrl_shift_toggle",
+		options = "grp:ctrl_shift_toggle",
 		sensitivity = 1.0,
 		repeat_rate = 50,
 		repeat_delay = 225,
@@ -18,7 +18,7 @@ local config = {
 		},
 	},
 	theme = {
-		background_png = "/home/joshammer/.config/waywall/grid.png",
+		background_png = "/home/joshammer/.config/nixos/modules/stylix/wallpapers/space.png",
 		ninb_anchor = "topleft",
 	},
 }
@@ -89,7 +89,7 @@ local mirrors = {
 		dst = { x = 1338, y = 144, w = 200, h = 36 },
 		color_key = {
 			input = "#dddddd",
-			output = "#000000",
+			output = "#ffffff",
 		},
 	}),
 
@@ -114,7 +114,7 @@ local mirrors = {
 		dst = { x = 1340, y = 200, w = 198, h = 251 },
 		color_key = {
 			input = "#45cb65",
-			output = "#000000",
+			output = "#ffffff",
 		},
 	}),
 
@@ -139,7 +139,7 @@ local mirrors = {
 		dst = { x = 1340, y = 200, w = 198, h = 251 },
 		color_key = {
 			input = "#45cb65",
-			output = "#000000",
+			output = "#ffffff",
 		},
 	}),
 
