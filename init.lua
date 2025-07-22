@@ -15,6 +15,11 @@ local config = {
 			["capslock"] = "0",
 			["f3"] = "f20",
 			["0"] = "f21",
+
+			["LeftShift"] = "LeftCtrl",
+			["LeftCtrl"] = "LeftShift",
+			["D"] = "Backspace",
+			["Grave"] = "Tab",
 		},
 	},
 	theme = {
