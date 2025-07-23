@@ -319,6 +319,9 @@ local resolutions = {
 	lowest = make_res(320, 16384, lowest_enable, lowest_disable),
 }
 
+helpers.res_image(mcsrp .. "topfgrad.png", { dst = { x = 0, y = 0, w = 1920, h = 390 } }, 1920, 300)
+helpers.res_image(mcsrp .. "botfgrad.png", { dst = { x = 0, y = 690, w = 1920, h = 390 } }, 1920, 300)
+
 local function exec(x)
 	return function()
 		waywall.exec(x)
