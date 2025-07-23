@@ -267,8 +267,8 @@ end
 
 config.actions = {
 	["*-m4"] = resolutions.thin,
+	["*-shift-m4"] = resolutions.wide,
 	["*-f1"] = resolutions.tall,
-	["*-ctrl-m4"] = resolutions.wide,
 	["*-ctrl-k"] = helpers.toggle_floating,
 	["*-ctrl-n"] = exec_ninb,
 }
