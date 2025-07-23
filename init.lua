@@ -1,31 +1,82 @@
 local waywall = require("waywall")
 local helpers = require("waywall.helpers")
 
+local config_dir = os.getenv("HOME") .. "/.config/waywall/"
+local state_file_path = config_dir .. "layout_state.txt"
+
+-- Function to read the current state from the file
+local function get_current_state()
+	local file = io.open(state_file_path, "r")
+	if file then
+		local state = file:read("*a")
+		file:close()
+		-- Ensure the state is valid, otherwise default to "mcsr"
+		if state == "dvorak" then
+			return "dvorak"
+		end
+	end
+	return "mcsr"
+end
+
+-- Function to write the new state to the file, triggering a hot-reload
+local function set_new_state(new_state)
+	local file = io.open(state_file_path, "w")
+	if file then
+		file:write(new_state)
+		file:close()
+		-- The file write will cause waywall to reload this entire script.
+		print("Switching state to " .. new_state .. ". Reloading config...")
+	else
+		print("ERROR: Could not write to state file at: " .. state_file_path)
+	end
+end
+
+-- Read the state when the script loads
+local current_state = get_current_state()
+
+-- Initialize the Config table
 local config = {
+	-- Basic input settings that are common to both modes
 	input = {
-		layout = "mcsr,us",
-		variant = ",dvorak",
-		options = "grp:ctrl_shift_toggle",
 		sensitivity = 1.0,
 		repeat_rate = 50,
 		repeat_delay = 225,
-
-		remaps = {
-			["m5"] = "f3",
-			["capslock"] = "0",
-
-			["LeftShift"] = "LeftCtrl",
-			["LeftCtrl"] = "LeftShift",
-			["D"] = "Backspace",
-			["Grave"] = "Tab",
-			["Tab"] = "Dot",
-		},
 	},
 	theme = {
 		background_png = "/home/joshammer/.config/nixos/modules/stylix/wallpapers/space.png",
 		ninb_anchor = "topleft",
 	},
 }
+
+-- Configure Mode-Specific Settings
+if current_state == "mcsr" then
+	-- ### MCSR MODE ###
+	-- Remaps are ENABLED
+	print("Loading MCSR profile.")
+
+	config.input.layout = "mcsr"
+	config.input.variant = ""
+
+	-- This is your list of remaps that will be ACTIVE in this mode.
+	config.input.remaps = {
+		["m5"] = "f3",
+		["capslock"] = "0",
+
+		["LeftShift"] = "LeftCtrl",
+		["LeftCtrl"] = "LeftShift",
+		["D"] = "Backspace",
+		["Grave"] = "Tab",
+		["Tab"] = "Dot",
+	}
+
+else
+	-- ### DVORAK MODE ###
+	print("Loading Dvorak profile.")
+
+	config.input.layout = "us"
+	config.input.variant = "dvorak"
+	config.input.remaps = {}
+end
 
 local make_image = function(path, dst)
 	local this = nil
@@ -271,6 +322,10 @@ config.actions = {
 	["*-f1"] = resolutions.tall,
 	["*-ctrl-k"] = helpers.toggle_floating,
 	["*-ctrl-n"] = exec_ninb,
+	["Win-Grave"] = function()
+		local new_state = (current_state == "mcsr") and "dvorak" or "mcsr"
+		set_new_state(new_state)
+	end,
 }
 
 return config
