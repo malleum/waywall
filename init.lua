@@ -3,6 +3,7 @@ local helpers = require("waywall.helpers")
 
 local config_dir = os.getenv("HOME") .. "/.config/waywall/"
 local state_file_path = config_dir .. "layout_state.txt"
+local mcsrp = "/home/joshammer/documents/gh/mcsr/"
 
 -- Function to read the current state from the file
 local function get_current_state()
@@ -33,6 +34,13 @@ end
 
 -- Read the state when the script loads
 local current_state = get_current_state()
+
+local function switch_state()
+	return function()
+		local new_state = (current_state == "mcsr") and "dvorak" or "mcsr"
+		set_new_state(new_state)
+	end
+end
 
 -- Initialize the Config table
 local config = {
@@ -68,7 +76,6 @@ if current_state == "mcsr" then
 		["Grave"] = "Tab",
 		["Tab"] = "Dot",
 	}
-
 else
 	-- ### DVORAK MODE ###
 	print("Loading Dvorak profile.")
@@ -225,7 +232,7 @@ local mirrors = {
 }
 
 local images = {
-	overlay = make_image("/home/joshammer/documents/gh/mcsr/overlay.png", { x = 0, y = 315, w = 800, h = 450 }),
+	overlay = make_image(mcsrp .. "overlay.png", { x = 0, y = 315, w = 800, h = 450 }),
 }
 
 local show_mirrors = function(eye, f3, tall, thin, lowest)
@@ -312,8 +319,10 @@ local resolutions = {
 	lowest = make_res(320, 16384, lowest_enable, lowest_disable),
 }
 
-local exec_ninb = function()
-	waywall.exec("ninjabrain-bot")
+local function exec(x)
+	return function()
+		waywall.exec(x)
+	end
 end
 
 config.actions = {
@@ -321,11 +330,13 @@ config.actions = {
 	["*-shift-m4"] = resolutions.wide,
 	["*-f1"] = resolutions.tall,
 	["*-ctrl-k"] = helpers.toggle_floating,
-	["*-ctrl-n"] = exec_ninb,
-	["Win-Grave"] = function()
-		local new_state = (current_state == "mcsr") and "dvorak" or "mcsr"
-		set_new_state(new_state)
-	end,
+	["*-ctrl-n"] = exec("ninjabrain-bot"),
+	["*-ctrl-b"] = exec("java -jar " .. mcsrp .. "e4mcbiat-0.2.2-all.jar"),
+	["Win-3"] = exec(mcsrp .. "crosshair.sh"),
+	["Win-7"] = exec(mcsrp .. "pearch.sh"),
+	["Win-8"] = exec(mcsrp .. "creative.sh"),
+	["Win-0"] = exec(mcsrp .. "opentolan.sh"),
+	["Win-Grave"] = switch_state,
 }
 
 return config
