@@ -3,7 +3,7 @@
   stdenv,
   fetchurl,
   makeWrapper,
-  jdk17,
+  jre,
   libxkbcommon,
   xorg,
   xkeyboard_config,
@@ -22,8 +22,8 @@ stdenv.mkDerivation rec {
   # All required runtime libraries for the application to function correctly.
   runtimeLibs = [libxkbcommon xorg.libX11 xorg.libXt xorg.libXtst xorg.libXext xorg.libXi xorg.libXrender xorg.libXrandr xorg.libXfixes xorg.libxkbfile xkeyboard_config];
 
-  # JRE and Xwayland are also build inputs.
-  buildInputs = [ (jdk17.override {enableGtk = false;}) ] ++ runtimeLibs;
+  # jre and Xwayland are also build inputs.
+  buildInputs = [jre] ++ runtimeLibs;
 
   dontUnpack = true;
 
@@ -34,8 +34,7 @@ stdenv.mkDerivation rec {
 
     # This wrapper sets the necessary library path for all dependencies
     # and a required AWT flag for compatibility with modern window managers.
-      # --set-default _JAVA_AWT_WM_NONREPARENTING 1 \
-    makeWrapper ${jdk17}/bin/java $out/bin/ninjabrain-bot \
+    makeWrapper ${jre}/bin/java $out/bin/ninjabrain-bot \
       --add-flags "-Dswing.defaultlaf=javax.swing.plaf.metal.MetalLookAndFeel -jar $out/share/java/ninjabrain-bot.jar" \
       --prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath runtimeLibs}
     runHook postInstall
