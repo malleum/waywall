@@ -339,7 +339,7 @@ config.actions = {
 	["Win-7"] = exec(mcsrp .. "pearch.sh"),
 	["Win-8"] = exec(mcsrp .. "creative.sh"),
 	["Win-0"] = exec(mcsrp .. "opentolan.sh"),
-	["Win-Grave"] = switch_state,
+	["Win-Grave"] = switch_state(),
 }
 
 return config
