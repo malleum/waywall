@@ -2,16 +2,16 @@ local waywall = require("waywall")
 local helpers = require("waywall.helpers")
 
 local config_dir = os.getenv("HOME") .. "/.config/waywall/"
-local state_file_path = config_dir .. "layout_state.txt"
-local mcsrp = "/home/joshammer/documents/gh/mcsr/"
+local mcsrp = os.getenv("HOME") .. "/documents/gh/mcsr/"
+local wallpapers = os.getenv("HOME") .. "/.config/nixos/modules/stylix/wallpapers/"
+local state_file_path = config_dir .. ".layout_state"
+local res_state = config_dir .. ".waywall_state"
 
--- Function to read the current state from the file
 local function get_current_state()
 	local file = io.open(state_file_path, "r")
 	if file then
 		local state = file:read("*a")
 		file:close()
-		-- Ensure the state is valid, otherwise default to "mcsr"
 		if state == "dvorak" then
 			return "dvorak"
 		end
@@ -19,20 +19,15 @@ local function get_current_state()
 	return "mcsr"
 end
 
--- Function to write the new state to the file, triggering a hot-reload
 local function set_new_state(new_state)
 	local file = io.open(state_file_path, "w")
 	if file then
 		file:write(new_state)
 		file:close()
-		-- The file write will cause waywall to reload this entire script.
 		print("Switching state to " .. new_state .. ". Reloading config...")
-	else
-		print("ERROR: Could not write to state file at: " .. state_file_path)
 	end
 end
 
--- Read the state when the script loads
 local current_state = get_current_state()
 
 local function switch_state()
@@ -40,30 +35,19 @@ local function switch_state()
 	set_new_state(new_state)
 end
 
--- Initialize the Config table
 local config = {
-	-- Basic input settings that are common to both modes
 	input = {
 		sensitivity = 1.0,
 		repeat_rate = 50,
 		repeat_delay = 225,
 	},
-	theme = {
-		background_png = "/home/joshammer/.config/nixos/modules/stylix/wallpapers/space.png",
-		ninb_anchor = "topleft",
-	},
+	theme = { background_png = wallpapers .. "space.png" },
 }
 
--- Configure Mode-Specific Settings
 if current_state == "mcsr" then
-	-- ### MCSR MODE ###
-	-- Remaps are ENABLED
-	print("Loading MCSR profile.")
-
 	config.input.layout = "mcsr"
 	config.input.variant = ""
 
-	-- This is your list of remaps that will be ACTIVE in this mode.
 	config.input.remaps = {
 		["m5"] = "f3",
 		["capslock"] = "0",
@@ -75,9 +59,6 @@ if current_state == "mcsr" then
 		["Tab"] = "Dot",
 	}
 else
-	-- ### DVORAK MODE ###
-	print("Loading Dvorak profile.")
-
 	config.input.layout = "us"
 	config.input.variant = "dvorak"
 	config.input.remaps = {}
@@ -255,58 +236,58 @@ local show_mirrors = function(eye, f3, tall, thin, lowest)
 end
 
 local thin_enable = function()
-	os.execute('echo "320x1080" > ~/.waywall_state')
+	os.execute('echo "320x1080" > ' .. res_state)
 	waywall.set_sensitivity(0)
 	show_mirrors(false, true, false, true, false)
 end
 
 local thin_disable = function()
-	os.execute('echo "1920x1080" > ~/.waywall_state')
+	os.execute('echo "1920x1080" > ' .. res_state)
 	show_mirrors(false, false, false, false, false)
 end
 
 local tall_enable = function()
-	os.execute('echo "320x16384" > ~/.waywall_state')
+	os.execute('echo "320x16384" > ' .. res_state)
 	waywall.set_sensitivity(0.02)
 	show_mirrors(true, true, true, false, false)
 end
 
 local tall_disable = function()
-	os.execute('echo "1920x1080" > ~/.waywall_state')
+	os.execute('echo "1920x1080" > ' .. res_state)
 	waywall.set_sensitivity(0)
 	show_mirrors(false, false, false, false, false)
 end
 
 local wide_enable = function()
-	os.execute('echo "1920x300" > ~/.waywall_state')
+	os.execute('echo "1920x300" > ' .. res_state)
 	waywall.set_sensitivity(0)
 	show_mirrors(false, false, false, false, false)
 end
 
 local wide_disable = function()
-	os.execute('echo "1920x1080" > ~/.waywall_state')
+	os.execute('echo "1920x1080" > ' .. res_state)
 end
 
 local lowest_enable = function()
-	os.execute('echo "320x16384" > ~/.waywall_state')
+	os.execute('echo "320x16384" > ' .. res_state)
 	waywall.set_sensitivity(0)
 	show_mirrors(true, true, true, false, false)
 end
 
 local lowest_disable = function()
-	os.execute('echo "1920x1080" > ~/.waywall_state')
+	os.execute('echo "1920x1080" > ' .. res_state)
 	waywall.set_sensitivity(0)
 	show_mirrors(false, false, false, false, false)
 end
 
 local semithin_enable = function()
-	os.execute('echo "328x1080" > ~/.waywall_state')
+	os.execute('echo "328x1080" > ' .. res_state)
 	waywall.set_sensitivity(0)
 	show_mirrors(false, false, false, false, false)
 end
 
 local semithin_disable = function()
-	os.execute('echo "1920x1080" > ~/.waywall_state')
+	os.execute('echo "1920x1080" > ' .. res_state)
 end
 
 local resolutions = {
