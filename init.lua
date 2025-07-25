@@ -4,7 +4,7 @@ local helpers = require("waywall.helpers")
 local config_dir = os.getenv("HOME") .. "/.config/waywall/"
 local mcsrp = os.getenv("HOME") .. "/documents/gh/mcsr/"
 local wallpapers = os.getenv("HOME") .. "/.config/nixos/modules/stylix/wallpapers/"
-local state_file_path = config_dir .. ".layout_state"
+local state_file_path = config_dir .. "layout_state.lua"
 local res_state = config_dir .. ".waywall_state"
 
 local function get_current_state()
@@ -317,8 +317,8 @@ config.actions = {
 	["Win-3"] = exec(mcsrp .. "crosshair.sh"),
 	["Win-7"] = exec(mcsrp .. "pearch.sh"),
 	["Win-8"] = exec(mcsrp .. "creative.sh"),
-	["Win-0"] = exec(mcsrp .. "opentolan.sh"),
-	["Win-Grave"] = switch_state,
+	["Win-9"] = exec(mcsrp .. "opentolan.sh"),
+	["Win-0"] = switch_state,
 }
 
 return config
