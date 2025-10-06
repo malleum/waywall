@@ -17,13 +17,13 @@
 }:
 stdenv.mkDerivation {
   pname = "waywall";
-  version = "0-unstable-2025-07-18";
+  version = "unstable-2025-09-07";
 
   src = fetchFromGitHub {
     owner = "tesselslate";
     repo = "waywall";
-    rev = "992fbfd2fcc62570ee8e79a53efeb0e5b770ec4e";
-    hash = "sha256-b+Lc1VGpeNwcxRAaDvsE5Gkx7DVOl3HyHP19YJyH/OY=";
+    rev = "ed76c2b605d19905617d9060536e980fd49410bf";
+    hash = "sha256-bLIoGLXnBrn46EVk0PkGePslKYL7V/h1mnI+s9GFSnY=";
   };
 
   nativeBuildInputs = [
