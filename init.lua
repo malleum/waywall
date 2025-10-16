@@ -37,7 +37,7 @@ end
 
 local config = {
 	input = {
-		sensitivity = 4.5,
+		sensitivity = 3.7,
 		repeat_rate = 50,
 		repeat_delay = 225,
 	},
