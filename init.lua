@@ -3,7 +3,7 @@ local helpers = require("waywall.helpers")
 
 local config_dir = os.getenv("HOME") .. "/.config/waywall/"
 local mcsrp = os.getenv("HOME") .. "/documents/gh/mcsr/"
-local wallpapers = os.getenv("HOME") .. "/.config/nixos/modules/stylix/wallpapers/"
+local wallpapers = os.getenv("HOME") .. "/.config/nixos/modules/style/wallpapers/"
 local state_file_path = config_dir .. "layout_state.lua"
 local res_state = config_dir .. ".waywall_state"
 
@@ -41,7 +41,7 @@ local config = {
 		repeat_rate = 50,
 		repeat_delay = 225,
 	},
-	theme = { background_png = wallpapers .. "space.png" },
+	theme = { background_png = wallpapers .. "legotesla.png" },
 }
 
 if current_state == "mcsr" then
