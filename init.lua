@@ -41,7 +41,8 @@ local config = {
 		repeat_rate = 50,
 		repeat_delay = 225,
 	},
-	theme = { background_png = wallpapers .. "legotesla.png" },
+	-- theme = { background_png = wallpapers .. "legotesla.png" },
+	theme = { background_png = config_dir .. "robotech.png" },
 }
 
 if current_state == "mcsr" then
