@@ -307,67 +307,12 @@ local function exec(x)
 	end
 end
 
-local function pearch()
-	waywall.sleep(100)
-	waywall.press_key("Esc")
-	waywall.sleep(100)
-
-	waywall.press_key("Tab")
-	waywall.press_key("Tab")
-	waywall.press_key("Tab")
-	waywall.press_key("Tab")
-	waywall.press_key("Tab")
-	waywall.press_key("Tab")
-	waywall.press_key("Tab")
-	waywall.press_key("Space")
-	waywall.sleep(100)
-
-	waywall.press_key("Tab")
-	waywall.press_key("Tab")
-	waywall.press_key("Tab")
-	waywall.press_key("Tab")
-	waywall.press_key("Space")
-	waywall.press_key("Tab")
-	waywall.press_key("Space")
-	waywall.sleep(100)
-
-	waywall.press_key("Enter")
-
-	waywall.sleep(500)
-
-	local keys = {
-		["/"] = "slash",
-		[" "] = "space",
-		["@"] = "at",
-		["["] = "bracketleft",
-		["]"] = "bracketright",
-		["{"] = "braceleft",
-		["}"] = "braceright",
-		[":"] = "colon",
-	}
-	local str = "/execute as @e[typ=ender_dragon] run data merge entity @s {DragonPhase:2}"
-	for c in str:gmatch(".") do
-		if keys[c] ~= nil then
-			waywall.press_key(keys[c])
-		else
-			waywall.press_key(c)
-		end
-
-		waywall.sleep(1000)
-	end
-	switch_state()
-
-	waywall.sleep(100)
-	waywall.press_key("Enter")
-end
-
 config.actions = {
 	["*-m4"] = resolutions.thin,
 	["*-shift-m4"] = resolutions.wide,
 	["*-f1"] = resolutions.tall,
-	["*-ctrl-k"] = helpers.toggle_floating,
-	["*-ctrl-n"] = exec("ninjabrain-bot"),
-	["*-ctrl-7"] = pearch,
+	["*-shift-f1"] = resolutions.lowest,
+	["*-backslash"] = exec("ninjabrain-bot"),
 	["*-ctrl-0"] = switch_state,
 }
 
