@@ -128,10 +128,10 @@ local mirrors = {
 	}),
 	f3_ecount = make_mirror({
 		src = { x = 0, y = 36, w = 50, h = 9 },
-		dst = { x = 1338, y = 144, w = 200, h = 36 },
+		dst = { x = 1138, y = 50, w = 200, h = 36 },
 		color_key = {
 			input = "#dddddd",
-			output = "#ffffff",
+			output = "#ff33ff",
 		},
 	}),
 
