@@ -313,8 +313,9 @@ config.actions = {
 	["*-shift-m4"] = resolutions.wide,
 	["*-f1"] = resolutions.tall,
 	["*-shift-f1"] = resolutions.lowest,
-	["*-backslash"] = exec("ninjabrain-bot"),
+	["*-Backslash"] = exec("ninjabrain-bot"),
 	["*-ctrl-0"] = switch_state,
+	["*-ctrl-k"] = helpers.toggle_floating,
 }
 
 return config
