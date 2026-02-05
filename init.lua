@@ -2,8 +2,6 @@ local waywall = require("waywall")
 local helpers = require("waywall.helpers")
 
 local config_dir = os.getenv("HOME") .. "/.config/waywall/"
-local mcsrp = os.getenv("HOME") .. "/documents/gh/mcsr/"
-local wallpapers = os.getenv("HOME") .. "/.config/nixos/modules/style/wallpapers/"
 local state_file_path = config_dir .. "layout_state.lua"
 local res_state = config_dir .. ".waywall_state"
 
@@ -41,7 +39,6 @@ local config = {
 		repeat_rate = 50,
 		repeat_delay = 225,
 	},
-	-- theme = { background_png = wallpapers .. "legotesla.png" },
 	theme = { background_png = config_dir .. "robotech.png" },
 }
 
@@ -212,7 +209,7 @@ local mirrors = {
 }
 
 local images = {
-	overlay = make_image(mcsrp .. "overlay.png", { x = 0, y = 315, w = 800, h = 450 }),
+	overlay = make_image(config_dir .. "overlay.png", { x = 0, y = 315, w = 800, h = 450 }),
 }
 
 local show_mirrors = function(eye, f3, tall, thin, lowest)
@@ -299,8 +296,8 @@ local resolutions = {
 	lowest = make_res(320, 16384, lowest_enable, lowest_disable),
 }
 
-helpers.res_image(mcsrp .. "topfgrad.png", { dst = { x = 0, y = 0, w = 1920, h = 390 } }, 1920, 300)
-helpers.res_image(mcsrp .. "botfgrad.png", { dst = { x = 0, y = 690, w = 1920, h = 390 } }, 1920, 300)
+helpers.res_image("topfgrad.png", { dst = { x = 0, y = 0, w = 1920, h = 390 } }, 1920, 300)
+helpers.res_image("botfgrad.png", { dst = { x = 0, y = 690, w = 1920, h = 390 } }, 1920, 300)
 
 local function exec(x)
 	return function()
