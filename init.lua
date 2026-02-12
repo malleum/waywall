@@ -94,12 +94,10 @@ local make_res = function(width, height, enable, disable)
 		local active_width, active_height = waywall.active_res()
 
 		if active_width == width and active_height == height then
-			os.execute('echo "' .. 0 .. "x" .. 0 .. '" > ~/.res_state.lua')
 			disable()
 			waywall.sleep(17)
 			waywall.set_resolution(0, 0)
 		else
-			os.execute('echo "' .. width .. "x" .. height .. '" > ~/.res_state.lua')
 			enable()
 			waywall.sleep(17)
 			waywall.set_resolution(width, height)
@@ -256,6 +254,61 @@ local resolutions = {
 -- helpers.res_image("topfgrad.png", { dst = { x = 0, y = 0, w = 1920, h = 390 } }, 1920, 300)
 -- helpers.res_image("botfgrad.png", { dst = { x = 0, y = 690, w = 1920, h = 390 } }, 1920, 300)
 
+local click_times = {}
+local cps_display = nil
+
+waywall.listen("load", function()
+	cps_display = waywall.text("0", { x = 1850, y = 20, size = 2, color = "#000000" })
+
+	local updater_loop = function()
+		while true do
+			local now = waywall.current_time()
+			local window_start = now - 333
+			local clicks_in_window = 0
+
+			for i = #click_times, 1, -1 do
+				if click_times[i] > window_start then
+					clicks_in_window = clicks_in_window + 1
+				else
+					table.remove(click_times, i)
+				end
+			end
+
+			local current_cps = clicks_in_window * 3
+
+			if cps_display then
+				cps_display:set_text(tostring(current_cps))
+
+				-- Calculate color: 0 CPS = #000000, 50 CPS = #00FF00
+				-- 255 / 50 is approx 5.1
+				local green_val = math.min(255, math.floor(current_cps * 5.1))
+				local hex_color = string.format("#00%02x00", green_val)
+
+				cps_display:set_depth(1) -- Ensure it stays on top
+				-- Assuming waywall objects support set_color or recreation
+				-- If the object doesn't support set_color, we recreate it:
+				cps_display:close()
+				cps_display = waywall.text(tostring(current_cps), {
+					x = 1850,
+					y = 20,
+					size = 2,
+					color = hex_color,
+				})
+			end
+
+			waywall.sleep(333)
+		end
+	end
+
+	local co = coroutine.create(updater_loop)
+	coroutine.resume(co)
+end)
+
+local function cps()
+    table.insert(click_times, waywall.current_time())
+    return false
+end
+
 local function exec(x)
 	return function()
 		waywall.exec(x)
@@ -270,6 +323,7 @@ config.actions = {
 	["*-ctrl-shift-k"] = exec("ninjabrain-bot"),
 	["*-ctrl-6"] = switch_state,
 	["*-ctrl-k"] = helpers.toggle_floating,
+	["*-rmb"] = cps,
 }
 
 return config
