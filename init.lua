@@ -93,10 +93,12 @@ local make_res = function(width, height, enable, disable)
 		local active_width, active_height = waywall.active_res()
 
 		if active_width == width and active_height == height then
+            os.execute('echo "' .. 0 .. 'x' .. 0 .. '" > ~/.res_state.lua')
 			disable()
 			waywall.sleep(17)
 			waywall.set_resolution(0, 0)
 		else
+            os.execute('echo "' .. width .. 'x' .. height .. '" > ~/.res_state.lua')
 			enable()
 			waywall.sleep(17)
 			waywall.set_resolution(width, height)
