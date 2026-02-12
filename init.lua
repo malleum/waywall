@@ -246,7 +246,7 @@ end
 
 local tall_enable = function()
 	os.execute('echo "320x16384" > ' .. res_state)
-	waywall.set_sensitivity(0.01 * config.input.sensitivity)
+	waywall.set_sensitivity(0.003 * config.input.sensitivity)
 	show_mirrors(true, true, true, false, false)
 end
 
@@ -269,7 +269,7 @@ end
 local lowest_enable = function()
 	os.execute('echo "320x16384" > ' .. res_state)
 	waywall.set_sensitivity(0)
-	show_mirrors(true, true, true, false, false)
+	show_mirrors(false, true, true, false, false)
 end
 
 local lowest_disable = function()

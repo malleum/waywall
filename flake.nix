@@ -9,8 +9,6 @@
   in {
     packages."${system}" = {
       ninjabrainbot = pkgs.callPackage ./ninjabrain-bot.nix {};
-      glfw = pkgs.callPackage ./glfw.nix {};
-      waywall = pkgs.callPackage ./waywall.nix {};
     };
   };
 }
