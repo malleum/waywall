@@ -296,8 +296,8 @@ local resolutions = {
 	lowest = make_res(320, 16384, lowest_enable, lowest_disable),
 }
 
-helpers.res_image("topfgrad.png", { dst = { x = 0, y = 0, w = 1920, h = 390 } }, 1920, 300)
-helpers.res_image("botfgrad.png", { dst = { x = 0, y = 690, w = 1920, h = 390 } }, 1920, 300)
+-- helpers.res_image("topfgrad.png", { dst = { x = 0, y = 0, w = 1920, h = 390 } }, 1920, 300)
+-- helpers.res_image("botfgrad.png", { dst = { x = 0, y = 690, w = 1920, h = 390 } }, 1920, 300)
 
 local function exec(x)
 	return function()
@@ -309,9 +309,9 @@ config.actions = {
 	["*-m4"] = resolutions.thin,
 	["*-shift-m4"] = resolutions.wide,
 	["*-f1"] = resolutions.tall,
-	["*-shift-f1"] = resolutions.lowest,
-	["*-Backslash"] = exec("ninjabrain-bot"),
-	["*-ctrl-0"] = switch_state,
+	["*-i-m4"] = resolutions.lowest,
+	["*-control-shift-k"] = exec("ninjabrain-bot"),
+	["*-ctrl-5"] = switch_state,
 	["*-ctrl-k"] = helpers.toggle_floating,
 }
 
