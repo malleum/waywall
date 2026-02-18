@@ -35,7 +35,7 @@ end
 
 local config = {
 	input = {
-		sensitivity = 3.7,
+		sensitivity = 3.7385416219369882,
 		repeat_rate = 50,
 		repeat_delay = 225,
 	},
@@ -201,7 +201,7 @@ end
 
 local tall_enable = function()
 	os.execute('echo "320x16384" > ' .. res_state)
-	waywall.set_sensitivity(0.003 * config.input.sensitivity)
+	waywall.set_sensitivity(0.25219978149188543)
 	show_mirrors(true, true, true, false, false)
 end
 
