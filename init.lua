@@ -108,12 +108,8 @@ end
 -- Mirrors and resolution toggles
 local mirrors = {
 	eye_measure = make_mirror({
-		src = { x = 130, y = 7902, w = 60, h = 580 },
-		dst = { x = 0, y = 315, w = 800, h = 450 },
-	}),
-	tall_pie = make_mirror({
-		src = { x = 0, y = 15980, w = 320, h = 260 },
-		dst = { x = 480, y = 765, w = 320, h = 260 },
+		src = { x = 162, y = 7902, w = 60, h = 580 },
+		dst = { x = 0, y = 326, w = 760, h = 428 },
 	}),
 
 	f3_ccache = make_mirror({
@@ -123,73 +119,127 @@ local mirrors = {
 	}),
 	f3_ecount = make_mirror({
 		src = { x = 0, y = 36, w = 50, h = 9 },
-		dst = { x = 1138, y = 50, w = 200, h = 36 },
-		color_key = { input = "#dddddd", output = "#ff33ff" },
+		dst = { x = 1340, y = 252, w = 200, h = 36 },
+		color_key = { input = "#dddddd", output = "#A8A8A8" },
 	}),
 
-	-- ==== FLAT PIE CHART LAYERS ====
-	pie_layer_entities = make_mirror({
-		src = { x = 227, y = 16163, w = 33, h = 42 },
-		dst = { x = 1340, y = 200, w = 198, h = 251 },
-		color_key = { input = "#e145c2", output = "#A8A8A8" },
+	-- ==== TALL PIE CHART LAYERS (384x16384) ====
+	tall_pie_blockentities = make_mirror({
+		src = { x = 44, y = 15978, w = 340, h = 178 },
+		dst = { x = 1340, y = 415, w = 198, h = 251 },
+		color_key = { input = "#EC6E4E", output = "#00FF00" },
 	}),
-	pie_layer_blockentities = make_mirror({
-		src = { x = 227, y = 16163, w = 33, h = 42 },
-		dst = { x = 1340, y = 200, w = 198, h = 251 },
-		color_key = { input = "#e96d4d", output = "#00FF00" }, -- Green for Block Entities
+	tall_pie_unspecified = make_mirror({
+		src = { x = 44, y = 15978, w = 340, h = 178 },
+		dst = { x = 1340, y = 415, w = 198, h = 251 },
+		color_key = { input = "#46CE66", output = "#A8A8A8" },
 	}),
-	pie_layer_unspec = make_mirror({
-		src = { x = 227, y = 16163, w = 33, h = 42 },
-		dst = { x = 1340, y = 200, w = 198, h = 251 },
-		color_key = { input = "#45cb65", output = "#A8A8A8" },
+	tall_pie_destroyProgress = make_mirror({
+		src = { x = 44, y = 15978, w = 340, h = 178 },
+		dst = { x = 1340, y = 415, w = 198, h = 251 },
+		color_key = { input = "#CC6C46", output = "#A8A8A8" },
+	}),
+	tall_pie_prepare = make_mirror({
+		src = { x = 44, y = 15978, w = 340, h = 178 },
+		dst = { x = 1340, y = 415, w = 198, h = 251 },
+		color_key = { input = "#464C46", output = "#A8A8A8" },
+	}),
+	tall_pie_entities = make_mirror({
+		src = { x = 44, y = 15978, w = 340, h = 178 },
+		dst = { x = 1340, y = 415, w = 198, h = 251 },
+		color_key = { input = "#E446C4", output = "#A8A8A8" },
 	}),
 
-	-- ==== PERCENTAGE TEXT LAYERS ====
-	-- These capture the text area and recolor them to match the pie slices
-	percent_sum_others = make_mirror({
-		src = { x = 257, y = 16163, w = 33, h = 25 }, -- Source for top percentages
-		dst = { x = 1340, y = 460, w = 198, h = 150 }, -- Positioned above block entities
-		color_key = {
-			input = "#45cb65", -- Captures "unspecified" text color
-			output = "#A8A8A8", -- Matches the grey pie slices
-		},
+	-- ==== THIN PIE CHART LAYERS (340x1080) ====
+	thin_pie_blockentities = make_mirror({
+		src = { x = 0, y = 674, w = 340, h = 178 },
+		dst = { x = 1340, y = 415, w = 198, h = 251 },
+		color_key = { input = "#EC6E4E", output = "#00FF00" },
 	}),
-	percent_blockentities = make_mirror({
-		src = { x = 257, y = 16163, w = 33, h = 25 },
-		dst = { x = 1340, y = 540, w = 198, h = 150 }, -- Positioned at the bottom
-		color_key = {
-			input = "#e96d4d", -- Captures "block entities" text color
-			output = "#00FF00", -- Matches the green pie slice
-		},
+	thin_pie_unspecified = make_mirror({
+		src = { x = 0, y = 674, w = 340, h = 178 },
+		dst = { x = 1340, y = 415, w = 198, h = 251 },
+		color_key = { input = "#46CE66", output = "#A8A8A8" },
+	}),
+	thin_pie_destroyProgress = make_mirror({
+		src = { x = 0, y = 674, w = 340, h = 178 },
+		dst = { x = 1340, y = 415, w = 198, h = 251 },
+		color_key = { input = "#CC6C46", output = "#A8A8A8" },
+	}),
+	thin_pie_prepare = make_mirror({
+		src = { x = 0, y = 674, w = 340, h = 178 },
+		dst = { x = 1340, y = 415, w = 198, h = 251 },
+		color_key = { input = "#464C46", output = "#A8A8A8" },
+	}),
+	thin_pie_entities = make_mirror({
+		src = { x = 0, y = 674, w = 340, h = 178 },
+		dst = { x = 1340, y = 415, w = 198, h = 251 },
+		color_key = { input = "#E446C4", output = "#A8A8A8" },
+	}),
+
+	-- ==== TALL PERCENTAGE TEXT LAYERS (384x16384) ====
+	tall_percent_blockentities = make_mirror({
+		src = { x = 291, y = 16163, w = 33, h = 25 },
+		dst = { x = 1340, y = 735, w = 198, h = 150 },
+		color_key = { input = "#E96D4D", output = "#00FF00" },
+	}),
+	tall_percent_unspecified = make_mirror({
+		src = { x = 291, y = 16163, w = 33, h = 25 },
+		dst = { x = 1340, y = 735, w = 198, h = 150 },
+		color_key = { input = "#45CB65", output = "#A8A8A8" },
+	}),
+
+	-- ==== THIN PERCENTAGE TEXT LAYERS (340x1080) ====
+	thin_percent_blockentities = make_mirror({
+		src = { x = 247, y = 859, w = 33, h = 25 },
+		dst = { x = 1340, y = 735, w = 198, h = 150 },
+		color_key = { input = "#E96D4D", output = "#00FF00" },
+	}),
+	thin_percent_unspecified = make_mirror({
+		src = { x = 247, y = 859, w = 33, h = 25 },
+		dst = { x = 1340, y = 735, w = 198, h = 150 },
+		color_key = { input = "#45CB65", output = "#A8A8A8" },
 	}),
 }
 
 local images = {
-	overlay = make_image(config_dir .. "overlay.png", { x = 0, y = 315, w = 800, h = 450 }),
+	overlay = make_image(config_dir .. "overlay.png", { x = 0, y = 326, w = 760, h = 428 }),
 }
 
 local show_mirrors = function(eye, f3, tall, thin, lowest)
 	images.overlay(eye)
 	mirrors.eye_measure(eye)
-	mirrors.tall_pie(eye)
 
 	mirrors.f3_ccache(f3)
 	mirrors.f3_ecount(f3)
 
-	local show_hud = tall or thin or lowest
+	local show_tall = tall or lowest
 
-	-- Pie Chart Layers
-	mirrors.pie_layer_entities(show_hud)
-	mirrors.pie_layer_blockentities(show_hud)
-	mirrors.pie_layer_unspec(show_hud)
+	-- Tall pie chart layers (384x16384)
+	mirrors.tall_pie_blockentities(show_tall)
+	mirrors.tall_pie_unspecified(show_tall)
+	mirrors.tall_pie_destroyProgress(show_tall)
+	mirrors.tall_pie_prepare(show_tall)
+	mirrors.tall_pie_entities(show_tall)
 
-	-- Percentage Text Layers
-	mirrors.percent_sum_others(show_hud)
-	mirrors.percent_blockentities(show_hud)
+	-- Thin pie chart layers (340x1080)
+	mirrors.thin_pie_blockentities(thin)
+	mirrors.thin_pie_unspecified(thin)
+	mirrors.thin_pie_destroyProgress(thin)
+	mirrors.thin_pie_prepare(thin)
+	mirrors.thin_pie_entities(thin)
+
+	-- Tall percentage text layers
+	mirrors.tall_percent_blockentities(show_tall)
+	mirrors.tall_percent_unspecified(show_tall)
+
+	-- Thin percentage text layers
+	mirrors.thin_percent_blockentities(thin)
+	mirrors.thin_percent_unspecified(thin)
 end
 
 local thin_enable = function()
-	os.execute('echo "320x1080" > ' .. res_state)
+	os.execute('echo "340x1080" > ' .. res_state)
 	waywall.set_sensitivity(0)
 	show_mirrors(false, true, false, true, false)
 end
@@ -200,7 +250,7 @@ local thin_disable = function()
 end
 
 local tall_enable = function()
-	os.execute('echo "320x16384" > ' .. res_state)
+	os.execute('echo "384x16384" > ' .. res_state)
 	waywall.set_sensitivity(0.25219978149188543)
 	show_mirrors(true, true, true, false, false)
 end
@@ -222,33 +272,20 @@ local wide_disable = function()
 end
 
 local lowest_enable = function()
-	os.execute('echo "320x16384" > ' .. res_state)
-	waywall.set_sensitivity(0)
+	os.execute('echo "384x16384" > ' .. res_state)
 	show_mirrors(false, true, true, false, false)
 end
 
 local lowest_disable = function()
 	os.execute('echo "1920x1080" > ' .. res_state)
-	waywall.set_sensitivity(0)
 	show_mirrors(false, false, false, false, false)
-end
-
-local semithin_enable = function()
-	os.execute('echo "328x1080" > ' .. res_state)
-	waywall.set_sensitivity(0)
-	show_mirrors(false, false, false, false, false)
-end
-
-local semithin_disable = function()
-	os.execute('echo "1920x1080" > ' .. res_state)
 end
 
 local resolutions = {
-	thin = make_res(320, 1080, thin_enable, thin_disable),
-	tall = make_res(320, 16384, tall_enable, tall_disable),
+	thin = make_res(340, 1080, thin_enable, thin_disable),
+	tall = make_res(384, 16384, tall_enable, tall_disable),
 	wide = make_res(1920, 300, wide_enable, wide_disable),
-	semithin = make_res(328, 1080, semithin_enable, semithin_disable),
-	lowest = make_res(320, 16384, lowest_enable, lowest_disable),
+	lowest = make_res(384, 16384, lowest_enable, lowest_disable),
 }
 
 -- helpers.res_image("topfgrad.png", { dst = { x = 0, y = 0, w = 1920, h = 390 } }, 1920, 300)
@@ -256,57 +293,72 @@ local resolutions = {
 
 local click_times = {}
 local cps_display = nil
+local cps_running = false
 
-waywall.listen("load", function()
-	cps_display = waywall.text("0", { x = 1850, y = 20, size = 2, color = "#000000" })
+local start_cps = function()
+	if cps_running then
+		cps_running = false
+		return
+	end
+	cps_running = true
 
-	local updater_loop = function()
-		while true do
-			local now = waywall.current_time()
-			local window_start = now - 333
-			local clicks_in_window = 0
+	while cps_running do
+		local now = waywall.current_time()
+		local window_start = now - 300
+		local new_times = {}
+		local clicks_in_window = 0
 
-			for i = #click_times, 1, -1 do
-				if click_times[i] > window_start then
-					clicks_in_window = clicks_in_window + 1
-				else
-					table.remove(click_times, i)
-				end
+		for i = 1, #click_times do
+			if click_times[i] > window_start then
+				clicks_in_window = clicks_in_window + 1
+				new_times[#new_times + 1] = click_times[i]
 			end
-
-			local current_cps = clicks_in_window * 3
-
-			if cps_display then
-				cps_display:set_text(tostring(current_cps))
-
-				-- Calculate color: 0 CPS = #000000, 50 CPS = #00FF00
-				-- 255 / 50 is approx 5.1
-				local green_val = math.min(255, math.floor(current_cps * 5.1))
-				local hex_color = string.format("#00%02x00", green_val)
-
-				cps_display:set_depth(1) -- Ensure it stays on top
-				-- Assuming waywall objects support set_color or recreation
-				-- If the object doesn't support set_color, we recreate it:
-				cps_display:close()
-				cps_display = waywall.text(tostring(current_cps), {
-					x = 1850,
-					y = 20,
-					size = 2,
-					color = hex_color,
-				})
-			end
-
-			waywall.sleep(333)
 		end
+		click_times = new_times
+
+		local current_cps = math.floor(clicks_in_window * 10 / 3 + 0.5)
+
+		if cps_display then
+			cps_display:close()
+			cps_display = nil
+		end
+
+		if current_cps > 0 then
+			local r, g, b
+			if current_cps <= 16 then
+				-- Black to grey
+				local t = (current_cps - 1) / 15
+				local v = math.floor(26 + t * 102)
+				r, g, b = v, v, v
+			elseif current_cps <= 33 then
+				-- Grey to yellow
+				local t = (current_cps - 17) / 16
+				r = math.floor(128 + t * 127)
+				g = math.floor(128 + t * 127)
+				b = math.floor(128 - t * 128)
+			else
+				-- Yellow to green
+				local t = math.min(1, (current_cps - 34) / 16)
+				r = math.floor(255 - t * 255)
+				g = 255
+				b = 0
+			end
+			local hex_color = string.format("#%02x%02x%02x", r, g, b)
+			cps_display = waywall.text(tostring(current_cps), { x = 1850, y = 20, size = 2, color = hex_color })
+		end
+
+		waywall.sleep(50)
 	end
 
-	local co = coroutine.create(updater_loop)
-	coroutine.resume(co)
-end)
+	if cps_display then
+		cps_display:close()
+		cps_display = nil
+	end
+end
 
 local function cps()
-    table.insert(click_times, waywall.current_time())
-    return false
+	table.insert(click_times, waywall.current_time())
+	return false
 end
 
 local function exec(x)
@@ -324,6 +376,12 @@ config.actions = {
 	["*-ctrl-6"] = switch_state,
 	["*-ctrl-k"] = helpers.toggle_floating,
 	["*-rmb"] = cps,
+	["*-ctrl-0"] = start_cps,
 }
+
+waywall.listen("load", function()
+	waywall.exec("ninjabrain-bot")
+	start_cps()
+end)
 
 return config
