@@ -288,83 +288,17 @@ local resolutions = {
 	lowest = make_res(384, 16384, lowest_enable, lowest_disable),
 }
 
--- helpers.res_image("topfgrad.png", { dst = { x = 0, y = 0, w = 1920, h = 390 } }, 1920, 300)
--- helpers.res_image("botfgrad.png", { dst = { x = 0, y = 690, w = 1920, h = 390 } }, 1920, 300)
-
-local click_times = {}
-local cps_display = nil
-local cps_running = false
-
-local start_cps = function()
-	if cps_running then
-		cps_running = false
+local toggle_ninbot = function()
+	local handle = io.popen("pgrep -f ninjabrain-bot")
+	if not handle then
 		return
 	end
-	cps_running = true
-
-	while cps_running do
-		local now = waywall.current_time()
-		local window_start = now - 300
-		local new_times = {}
-		local clicks_in_window = 0
-
-		for i = 1, #click_times do
-			if click_times[i] > window_start then
-				clicks_in_window = clicks_in_window + 1
-				new_times[#new_times + 1] = click_times[i]
-			end
-		end
-		click_times = new_times
-
-		local current_cps = math.floor(clicks_in_window * 10 / 3 + 0.5)
-
-		if cps_display then
-			cps_display:close()
-			cps_display = nil
-		end
-
-		if current_cps > 0 then
-			local r, g, b
-			if current_cps <= 16 then
-				-- Black to grey
-				local t = (current_cps - 1) / 15
-				local v = math.floor(26 + t * 102)
-				r, g, b = v, v, v
-			elseif current_cps <= 33 then
-				-- Grey to yellow
-				local t = (current_cps - 17) / 16
-				r = math.floor(128 + t * 127)
-				g = math.floor(128 + t * 127)
-				b = math.floor(128 - t * 128)
-			else
-				-- Yellow to green
-				local t = math.min(1, (current_cps - 34) / 16)
-				r = math.floor(255 - t * 255)
-				g = 255
-				b = 0
-			end
-			local hex_color = string.format("#%02x%02x%02x", r, g, b)
-			cps_display = waywall.text(tostring(current_cps), { x = 1850, y = 20, size = 2, color = hex_color })
-		end
-
-		waywall.sleep(50)
+	local result = handle:read("*l")
+	handle:close()
+	if not result then
+		waywall.exec("ninjabrain-bot")
 	end
-
-	if cps_display then
-		cps_display:close()
-		cps_display = nil
-	end
-end
-
-local function cps()
-	table.insert(click_times, waywall.current_time())
-	return false
-end
-
-local function exec(x)
-	return function()
-		waywall.exec(x)
-	end
+	helpers.toggle_floating()
 end
 
 config.actions = {
@@ -372,16 +306,8 @@ config.actions = {
 	["*-shift-m4"] = resolutions.wide,
 	["*-f1"] = resolutions.tall,
 	["*-ctrl-4"] = resolutions.lowest,
-	["*-ctrl-shift-k"] = exec("ninjabrain-bot"),
 	["*-ctrl-6"] = switch_state,
-	["*-ctrl-k"] = helpers.toggle_floating,
-	["*-rmb"] = cps,
-	["*-ctrl-0"] = start_cps,
+	["*-ctrl-k"] = toggle_ninbot,
 }
-
-waywall.listen("load", function()
-	waywall.exec("ninjabrain-bot")
-	start_cps()
-end)
 
 return config
