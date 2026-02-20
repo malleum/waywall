@@ -3,7 +3,7 @@ local helpers = require("waywall.helpers")
 
 local config_dir = os.getenv("HOME") .. "/.config/waywall/"
 local state_file_path = config_dir .. "layout_state.lua"
-local res_state = config_dir .. ".waywall_state"
+local res_state = os.getenv("HOME") .. "/.waywall_state"
 
 local function get_current_state()
 	local file = io.open(state_file_path, "r")
@@ -95,11 +95,9 @@ local make_res = function(width, height, enable, disable)
 
 		if active_width == width and active_height == height then
 			disable()
-			waywall.sleep(17)
 			waywall.set_resolution(0, 0)
 		else
 			enable()
-			waywall.sleep(17)
 			waywall.set_resolution(width, height)
 		end
 	end
@@ -240,44 +238,52 @@ end
 
 local thin_enable = function()
 	os.execute('echo "340x1080" > ' .. res_state)
+    waywall.sleep(17)
 	waywall.set_sensitivity(0)
 	show_mirrors(false, true, false, true, false)
 end
 
 local thin_disable = function()
 	os.execute('echo "1920x1080" > ' .. res_state)
+    waywall.sleep(17)
 	show_mirrors(false, false, false, false, false)
 end
 
 local tall_enable = function()
 	os.execute('echo "384x16384" > ' .. res_state)
+    waywall.sleep(17)
 	waywall.set_sensitivity(0.25219978149188543)
 	show_mirrors(true, true, true, false, false)
 end
 
 local tall_disable = function()
 	os.execute('echo "1920x1080" > ' .. res_state)
+    waywall.sleep(17)
 	waywall.set_sensitivity(0)
 	show_mirrors(false, false, false, false, false)
 end
 
 local wide_enable = function()
 	os.execute('echo "1920x300" > ' .. res_state)
+    waywall.sleep(17)
 	waywall.set_sensitivity(0)
 	show_mirrors(false, false, false, false, false)
 end
 
 local wide_disable = function()
 	os.execute('echo "1920x1080" > ' .. res_state)
+    waywall.sleep(17)
 end
 
 local lowest_enable = function()
 	os.execute('echo "384x16384" > ' .. res_state)
+    waywall.sleep(17)
 	show_mirrors(false, true, true, false, false)
 end
 
 local lowest_disable = function()
 	os.execute('echo "1920x1080" > ' .. res_state)
+    waywall.sleep(17)
 	show_mirrors(false, false, false, false, false)
 end
 

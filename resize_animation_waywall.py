@@ -43,7 +43,7 @@ import obspython as S
 
 OBS_SCENE = "Scene"
 WAYWALL_SOURCE = "Minecraft"
-RESOLUTION_FILE = "/home/char/.resetti_state"
+RESOLUTION_FILE = "/home/joshammer/.waywall_state"
 SCREEN_WIDTH = 1920
 SCREEN_HEIGHT = 1080
 
