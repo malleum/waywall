@@ -15,7 +15,7 @@ directory by home-manager (hence the `.gitignore` entry).
     lua/main.lua                    waywall scene engine, driven by a cfg table
     nix/pkgs/ninjabrain-bot.nix     the jar, wrapped with its runtime X libs
     nix/pkgs/cps-wl.nix             clicks-per-second layer-shell overlay
-    nix/pkgs/mcsr-jdk.nix           GraalVM CE + the MCSR JVM args, as passthru
+    nix/pkgs/mcsr-jdk.nix           Oracle GraalVM 21 + the MCSR JVM args, as passthru
     nix/lib/assets.nix              border/crosshair PNGs, generated from colours
     nix/lib/gen-assets.py           the Pillow script assets.nix runs
     nix/lib/ninb-theme.nix          base16 -> Ninjabrain-Bot theme string
@@ -85,8 +85,9 @@ tracks the mode itself instead of using `helpers.res_mirror`.
 
 ## Minecraft JVM
 
-`mcsr-jdk` is GraalVM CE. Point Prism Launcher's Java path at it and take the
-arguments from the package rather than retyping them:
+`mcsr-jdk` is Oracle GraalVM for JDK 21 (unfree, Oracle's GFTC — needs
+`allowUnfree`). Point Prism Launcher's Java path at it and take the arguments
+from the package rather than retyping them:
 
 ```sh
 nix build .#mcsr-jdk --no-link --print-out-paths   # Java path: <out>/bin/java
@@ -94,9 +95,9 @@ nix eval .#mcsr-jdk.jvmArgs --json                 # Java arguments
 nix eval .#mcsr-jdk.heapMegabytes                  # baseline max heap
 ```
 
-See the comments in `nix/pkgs/mcsr-jdk.nix` for why each flag is there, and
-which flags from the community guide are deliberately left out because GraalVM
-CE 25 rejects them.
+See the comments in `nix/pkgs/mcsr-jdk.nix` for why each flag is there, and why
+this is Oracle GraalVM 21 rather than the GraalVM CE 25 in nixpkgs: two of the
+four flags do not exist on that combination.
 
 ## Credits
 
