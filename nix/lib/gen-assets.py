@@ -11,11 +11,19 @@ Spec shape:
       "canvas":    {"w": 1920, "h": 1080},
       "border":    {"color": "#7aa2f7", "width": 3, "radius": 18, "opacity": 1.0},
       "crosshair": {"color": "#f7768e", "size": 9, "opacity": 0.9},
-      "images":    {"border_thin": [ {"x":..,"y":..,"w":..,"h":..}, ... ], ... }
+      "images":    {
+        "frame_thin": {
+          "rects": [ {"x":.., "y":.., "w":.., "h":.., "mask": true} ],
+          "fills": [ {"outer": {...}, "inner": {...}} ]
+        },
+        ...
+      }
     }
 
-Each entry in "images" is a list of rectangles to outline on an otherwise
-transparent canvas-sized image.
+Each entry in "images" becomes one transparent canvas-sized PNG. Its "rects" are
+rounded outlines; "mask" on a rect additionally paints out the square corners it
+leaves poking past the rounded path. Its "fills" paint "outer" solid except for a
+rounded hole at "inner", which is how the unwanted part of a viewport is hidden.
 """
 
 import json
@@ -102,6 +110,36 @@ def outline(draw: ImageDraw.ImageDraw, rect: dict, color, width: int, radius: in
     draw.rounded_rectangle(box, radius=r, outline=color, width=width)
 
 
+def fill_around(img: Image.Image, fill: dict, colour, width: int, radius: int) -> None:
+    """Fill `fill["outer"]` opaquely, minus a rounded hole at `fill["inner"]`.
+
+    Used to hide the part of the game that is not being shown. In `lowest` mode
+    the instance renders at full canvas height while only a shorter mirrored slice
+    of it is wanted on screen, so the strips of the real viewport above and below
+    that slice have to be painted out -- otherwise the scene continues past the
+    border and the mirror looks like a rectangle drawn on top of the game.
+    """
+    outer, inner = fill["outer"], fill["inner"]
+
+    layer = Image.new("RGBA", (outer["w"], outer["h"]), colour)
+
+    box, r = geometry(inner, width, radius)
+    keep = Image.new("L", (outer["w"], outer["h"]), 255)
+    ImageDraw.Draw(keep).rounded_rectangle(
+        (
+            box[0] - outer["x"],
+            box[1] - outer["y"],
+            box[2] - outer["x"],
+            box[3] - outer["y"],
+        ),
+        radius=r,
+        fill=0,
+    )
+    layer.putalpha(keep)
+
+    img.alpha_composite(layer, (outer["x"], outer["y"]))
+
+
 def main() -> None:
     out = Path(sys.argv[1])
     out.mkdir(parents=True, exist_ok=True)
@@ -114,31 +152,31 @@ def main() -> None:
 
     corner_fill = rgba(border["cornerFill"], 1.0) if border.get("cornerFill") else None
 
-    for name, rects in spec["images"].items():
+    for name, image in spec["images"].items():
+        rects = image.get("rects", [])
+        fills = image.get("fills", [])
+
         img = Image.new("RGBA", (canvas["w"], canvas["h"]), (0, 0, 0, 0))
 
-        # Corner wedges for every rect first, then every stroke, so a stroke is
-        # never painted over by the next rect's mask.
+        def w_of(rect):
+            return int(rect.get("width", border["width"]))
+
+        def r_of(rect):
+            return int(rect.get("radius", border["radius"]))
+
+        # Large fills first, then corner wedges, then strokes: each stage paints
+        # over the one before, and a stroke must never be covered by a later
+        # rect's mask.
         if corner_fill:
+            for fill in fills:
+                fill_around(img, fill, corner_fill, w_of(fill["inner"]), r_of(fill["inner"]))
             for rect in rects:
                 if rect.get("mask", False):
-                    mask_corners(
-                        img,
-                        rect,
-                        corner_fill,
-                        int(rect.get("width", border["width"])),
-                        int(rect.get("radius", border["radius"])),
-                    )
+                    mask_corners(img, rect, corner_fill, w_of(rect), r_of(rect))
 
         draw = ImageDraw.Draw(img)
         for rect in rects:
-            outline(
-                draw,
-                rect,
-                border_color,
-                int(rect.get("width", border["width"])),
-                int(rect.get("radius", border["radius"])),
-            )
+            outline(draw, rect, border_color, w_of(rect), r_of(rect))
         img.save(out / f"{name}.png")
 
     # Crosshair: a filled dot with a 1px darker rim so it stays visible against

@@ -83,11 +83,17 @@
       h = bottom - top;
     };
 
-  measureBox = box {
-    inherit (cfg.measure) x y;
-    w = cfg.measure.width;
-    h = cfg.measure.height;
-  };
+  # The boat-eye window is a mirror, not the game surface, so unlike the game
+  # boxes its frame has to be drawn *above* what it frames -- see the depth
+  # comments in lua/main.lua. It needs corner masking for the same reason the
+  # game boxes do: the mirror is rectangular and shows past the rounded corners.
+  measureBox =
+    (box {
+      inherit (cfg.measure) x y;
+      w = cfg.measure.width;
+      h = cfg.measure.height;
+    })
+    // {mask = cfg.border.maskCorners;};
 
   # Border around the game viewport. On the axis where the render fills the
   # canvas (height, in every mode but wide) there is no room outside the game to
@@ -112,6 +118,29 @@
     mask = cfg.border.maskCorners;
   };
 
+  # `lowest` renders at the tall resolution for the vertical precision, then
+  # mirrors a centre slice of it into a shorter rectangle. That is the only way to
+  # get both: waywall composites the instance 1:1 and crops, so a 16384-tall
+  # render always fills the canvas height and cannot be shown shorter -- while
+  # rendering at 864 to get the height back would restore the full ~70 degree
+  # vertical FOV and throw the zoom away. Mirroring keeps the tall render and
+  # shows a few degrees of it across 864 pixels.
+  lowestDst = {
+    x = (cfg.canvas.width - cfg.lowest.width) / 2;
+    y = (cfg.canvas.height - cfg.lowest.height) / 2;
+    w = cfg.lowest.width;
+    h = cfg.lowest.height;
+  };
+
+  lowestSrc = {
+    x = (cfg.lowest.render.w - cfg.lowest.srcWidth) / 2;
+    y = (cfg.lowest.render.h - cfg.lowest.srcHeight) / 2;
+    w = cfg.lowest.srcWidth;
+    h = cfg.lowest.srcHeight;
+  };
+
+  lowestBox = (box lowestDst) // {mask = cfg.border.maskCorners;};
+
   assets = import ../lib/assets.nix {inherit (pkgs) runCommand python3;} {
     canvas = {
       w = cfg.canvas.width;
@@ -133,13 +162,27 @@
     # resolution, the panel only on what the debug overlay is showing, and
     # multiplying them out would mean nine near-identical PNGs.
     images = {
-      frame_thin = [(gameBox cfg.resolutions.thin)];
-      frame_wide = [(gameBox cfg.resolutions.wide)];
-      frame_tall = [(gameBox cfg.resolutions.tall) measureBox];
-      frame_lowest = [(gameBox cfg.resolutions.lowest)];
+      frame_thin.rects = [(gameBox cfg.resolutions.thin)];
+      frame_wide.rects = [(gameBox cfg.resolutions.wide)];
+      frame_tall.rects = [(gameBox cfg.resolutions.tall)];
 
-      panel_full = [panelBox];
-      panel_ecount = [ecountBox];
+      # Paints out the strips of the real viewport above and below the mirrored
+      # slice, which would otherwise show the scene continuing past the border.
+      # Goes under the mirror, at the depth where the instance also sits.
+      cover_lowest.fills = [
+        {
+          outer = gameBox cfg.lowest.render;
+          inner = lowestBox;
+        }
+      ];
+
+      # These two frame a *mirror*, so unlike the game frames they have to be
+      # drawn above what they frame -- see the depth comments in lua/main.lua.
+      frame_lowest.rects = [lowestBox];
+      frame_measure.rects = [measureBox];
+
+      panel_full.rects = [panelBox];
+      panel_ecount.rects = [ecountBox];
     };
   };
 
@@ -204,7 +247,14 @@
       thin = cfg.resolutions.thin;
       wide = cfg.resolutions.wide;
       tall = cfg.resolutions.tall;
-      lowest = cfg.resolutions.lowest;
+      # `lowest` renders tall but is displayed through a mirror, hence the pair
+      # of rects below rather than just a size.
+      lowest = cfg.lowest.render;
+    };
+
+    lowest = {
+      src = lowestSrc;
+      dst = lowestDst;
     };
 
     sensitivity = {
@@ -254,6 +304,8 @@
       frame_wide = "${assets}/frame_wide.png";
       frame_tall = "${assets}/frame_tall.png";
       frame_lowest = "${assets}/frame_lowest.png";
+      cover_lowest = "${assets}/cover_lowest.png";
+      frame_measure = "${assets}/frame_measure.png";
       panel_full = "${assets}/panel_full.png";
       panel_ecount = "${assets}/panel_ecount.png";
       crosshair = "${assets}/crosshair.png";

@@ -232,7 +232,15 @@ return function(cfg)
 		measure = make_mirror({ src = measure_src, dst = measure_dst, depth = 2 }),
 		measure_ruler = make_image(cfg.assets.measure_overlay, measure_dst, 3),
 
-		crosshair = make_image(cfg.assets.crosshair, cfg.crosshair_rect, 4),
+		-- Depth 4, above both the mirror and the ruler, because this frame has to
+		-- paint *over* what it frames. The game-viewport frames get away with
+		-- depth 1 only because the Minecraft surface sits below every
+		-- positive-depth scene object; a mirror does not, so a mask drawn under
+		-- one would be hidden by it and the mirror's square corners would still
+		-- show past the rounded border.
+		measure_frame = make_image(cfg.assets.frame_measure, cfg.canvas_rect, 4),
+
+		crosshair = make_image(cfg.assets.crosshair, cfg.crosshair_rect, 5),
 	}
 
 	-- One set of instrument mirrors per resolution that has them. The e-count
@@ -291,6 +299,7 @@ return function(cfg)
 		-- to read the pie chart at a smaller render).
 		scene.measure(is_tall)
 		scene.measure_ruler(is_tall)
+		scene.measure_frame(is_tall)
 
 		scene.panel_full(any_res and frame_mode == "full")
 		scene.panel_ecount(any_res and frame_mode == "ecount")
