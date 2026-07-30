@@ -5,7 +5,15 @@
   makeWrapper,
   jre,
   libxkbcommon,
-  xorg,
+  libX11,
+  libxt,
+  libxtst,
+  libxext,
+  libxi,
+  libxrender,
+  libxrandr,
+  libxfixes,
+  libxkbfile,
   xkeyboard_config,
 }:
 stdenv.mkDerivation rec {
@@ -19,10 +27,22 @@ stdenv.mkDerivation rec {
 
   nativeBuildInputs = [makeWrapper];
 
-  # All required runtime libraries for the application to function correctly.
-  runtimeLibs = [libxkbcommon xorg.libX11 xorg.libXt xorg.libXtst xorg.libXext xorg.libXi xorg.libXrender xorg.libXrandr xorg.libXfixes xorg.libxkbfile xkeyboard_config];
+  # jnativehook (the global hotkey listener) dlopens these at runtime, so they
+  # have to be on LD_LIBRARY_PATH rather than merely present at build time.
+  runtimeLibs = [
+    libxkbcommon
+    libX11
+    libxt
+    libxtst
+    libxext
+    libxi
+    libxrender
+    libxrandr
+    libxfixes
+    libxkbfile
+    xkeyboard_config
+  ];
 
-  # jre and Xwayland are also build inputs.
   buildInputs = [jre] ++ runtimeLibs;
 
   dontUnpack = true;
@@ -32,18 +52,19 @@ stdenv.mkDerivation rec {
     mkdir -p $out/bin $out/share/java
     cp $src $out/share/java/ninjabrain-bot.jar
 
-    # This wrapper sets the necessary library path for all dependencies
-    # and a required AWT flag for compatibility with modern window managers.
+    # Metal look-and-feel: the default GTK LaF renders a blank window under
+    # several Wayland compositors, waywall's included.
     makeWrapper ${jre}/bin/java $out/bin/ninjabrain-bot \
       --add-flags "-Dswing.defaultlaf=javax.swing.plaf.metal.MetalLookAndFeel -jar $out/share/java/ninjabrain-bot.jar" \
       --prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath runtimeLibs}
     runHook postInstall
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Minecraft speedrunning advanced stronghold calculator";
     homepage = "https://github.com/Ninjabrain1/Ninjabrain-Bot";
-    license = licenses.gpl3Plus;
-    platforms = platforms.linux;
+    license = lib.licenses.gpl3Plus;
+    mainProgram = "ninjabrain-bot";
+    platforms = lib.platforms.linux;
   };
 }
