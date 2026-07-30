@@ -30,31 +30,63 @@
     y = (cfg.canvas.height - h) / 2;
   };
 
-  # The right-hand instrument cluster: e-count, pie chart and percentages. One
-  # box around all three reads as a panel rather than three floating widgets.
+  pad = cfg.border.padding;
+
+  box = {
+    x,
+    y,
+    w,
+    h,
+  }: {
+    x = x - pad;
+    y = y - pad;
+    w = w + 2 * pad;
+    h = h + 2 * pad;
+  };
+
+  ecountWidth = builtins.floor ((
+      if cfg.panel.ecount.showChunkCache
+      then 49
+      else 37
+    )
+    * cfg.panel.ecount.scale);
+  ecountHeight = builtins.floor ((
+      if cfg.panel.ecount.showChunkCache
+      then 18
+      else 9
+    )
+    * cfg.panel.ecount.scale);
+
+  # Just the e-count, for when the debug overlay is up but the profiler pie is
+  # not: a full-height panel frame around an empty rectangle looks broken.
+  ecountBox = box {
+    inherit (cfg.panel.ecount) x y;
+    w = ecountWidth;
+    h = ecountHeight;
+  };
+
+  # The whole right-hand instrument cluster: e-count, pie chart and percentages.
+  # One box around all three reads as a panel rather than three floating widgets.
   panelBox = let
     left = lib.min cfg.panel.pie.x cfg.panel.ecount.x;
     right =
       lib.max
       (cfg.panel.pie.x + builtins.floor (420 * cfg.panel.pie.scale))
-      (cfg.panel.ecount.x + builtins.floor (37 * cfg.panel.ecount.scale));
+      (cfg.panel.ecount.x + ecountWidth);
     top = lib.min cfg.panel.ecount.y cfg.panel.pie.y;
     bottom = cfg.panel.percent.y + builtins.floor (25 * cfg.panel.percent.scale);
-    pad = cfg.border.padding;
-  in {
-    x = left - pad;
-    y = top - pad;
-    w = right - left + 2 * pad;
-    h = bottom - top + 2 * pad;
-  };
+  in
+    box {
+      x = left;
+      y = top;
+      w = right - left;
+      h = bottom - top;
+    };
 
-  measureBox = let
-    pad = cfg.border.padding;
-  in {
-    x = cfg.measure.x - pad;
-    y = cfg.measure.y - pad;
-    w = cfg.measure.width + 2 * pad;
-    h = cfg.measure.height + 2 * pad;
+  measureBox = box {
+    inherit (cfg.measure) x y;
+    w = cfg.measure.width;
+    h = cfg.measure.height;
   };
 
   # Border around the game viewport. On the axis where the render fills the
@@ -65,7 +97,6 @@
   # are actually on screen rather than cropped away.
   gameBox = res: let
     v = viewport res;
-    pad = cfg.border.padding;
     x0 = lib.max 0 (v.x - pad);
     y0 = lib.max 0 (v.y - pad);
     x1 = lib.min cfg.canvas.width (v.x + v.w + pad);
@@ -75,6 +106,10 @@
     y = y0;
     w = x1 - x0;
     h = y1 - y0;
+    # Minecraft renders a rectangle, so without this the game shows past each
+    # rounded corner. Only the game boxes need it; the panel and measuring boxes
+    # sit on the background already.
+    mask = cfg.border.maskCorners;
   };
 
   assets = import ../lib/assets.nix {inherit (pkgs) runCommand python3;} {
@@ -84,17 +119,29 @@
     };
     border = {
       inherit (cfg.border) color width radius opacity;
+      cornerFill =
+        if cfg.border.maskCorners
+        then cfg.colors.background
+        else null;
     };
     crosshair = {
       inherit (cfg.crosshair) color size opacity;
     };
+
+    # Frames and panels are separate images rather than one image per
+    # (mode x panel state) combination: the game frame depends only on the
+    # resolution, the panel only on what the debug overlay is showing, and
+    # multiplying them out would mean nine near-identical PNGs.
     images = {
-      border_thin = [(gameBox cfg.resolutions.thin) panelBox];
-      border_wide = [(gameBox cfg.resolutions.wide)];
-      border_tall = [(gameBox cfg.resolutions.tall) panelBox measureBox];
-      # `lowest` shares the tall resolution but skips the boat-eye window, so
-      # it needs a border image without the measuring box.
-      border_tall_bare = [(gameBox cfg.resolutions.tall) panelBox];
+      frame_thin = [(gameBox cfg.resolutions.thin)];
+      frame_wide = [(gameBox cfg.resolutions.wide)];
+      frame_tall = [(gameBox cfg.resolutions.tall) measureBox];
+      # `lowest` shares the tall resolution but skips the boat-eye window, so it
+      # needs a frame without the measuring box.
+      frame_tall_bare = [(gameBox cfg.resolutions.tall)];
+
+      panel_full = [panelBox];
+      panel_ecount = [ecountBox];
     };
   };
 
@@ -203,10 +250,12 @@
     };
 
     assets = {
-      border_thin = "${assets}/border_thin.png";
-      border_wide = "${assets}/border_wide.png";
-      border_tall = "${assets}/border_tall.png";
-      border_tall_bare = "${assets}/border_tall_bare.png";
+      frame_thin = "${assets}/frame_thin.png";
+      frame_wide = "${assets}/frame_wide.png";
+      frame_tall = "${assets}/frame_tall.png";
+      frame_tall_bare = "${assets}/frame_tall_bare.png";
+      panel_full = "${assets}/panel_full.png";
+      panel_ecount = "${assets}/panel_ecount.png";
       crosshair = "${assets}/crosshair.png";
       measure_overlay = toString cfg.measure.overlay;
     };
@@ -323,6 +372,18 @@ in {
           Gap between a border and the thing it frames. The stroke is drawn
           inside its rectangle, so this is the only thing keeping it off the
           game's edge pixels.
+        '';
+      };
+      maskCorners = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = ''
+          Paint the four corner wedges of the game viewport that fall outside the
+          rounded border with `colors.background`. Minecraft renders a rectangle,
+          so without this a sliver of game shows past each rounded corner.
+
+          Assumes the background is a solid colour; with a background image the
+          wedges would read as four flat patches instead.
         '';
       };
     };
@@ -652,6 +713,17 @@ in {
       cps = "*-ctrl-7";
       crosshair = "*-ctrl-8";
       paceman = "*-ctrl-p";
+
+      # The two binds that open Minecraft's debug overlay, so the panel can size
+      # itself to what the overlay is actually showing. These fire and then pass
+      # the input through -- they observe, they do not replace the bind.
+      #
+      # IMPORTANT: actions are matched *before* remaps and against the host
+      # keymap (waywall/server/wl_seat.c: "Actions should take priority over
+      # remaps"), so these must name the key you physically press, not the key
+      # the remap sends. With `remaps."m5" = "f3"`, that means `m5`, not `f3`.
+      debug = "m5";
+      debug_pie = "shift-m5";
     };
   };
 

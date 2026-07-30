@@ -210,11 +210,16 @@ return function(cfg)
 
 	local scene = {
 		-- Borders are drawn under everything else (depth 1) so mirrors and
-		-- text sit on top of them.
-		border_thin = make_image(cfg.assets.border_thin, cfg.canvas_rect, 1),
-		border_wide = make_image(cfg.assets.border_wide, cfg.canvas_rect, 1),
-		border_tall = make_image(cfg.assets.border_tall, cfg.canvas_rect, 1),
-		border_tall_bare = make_image(cfg.assets.border_tall_bare, cfg.canvas_rect, 1),
+		-- text sit on top of them. Frames (which depend on the resolution) and
+		-- panels (which depend on what the debug overlay is showing) are
+		-- separate images so they can be combined freely.
+		frame_thin = make_image(cfg.assets.frame_thin, cfg.canvas_rect, 1),
+		frame_wide = make_image(cfg.assets.frame_wide, cfg.canvas_rect, 1),
+		frame_tall = make_image(cfg.assets.frame_tall, cfg.canvas_rect, 1),
+		frame_tall_bare = make_image(cfg.assets.frame_tall_bare, cfg.canvas_rect, 1),
+
+		panel_full = make_image(cfg.assets.panel_full, cfg.canvas_rect, 1),
+		panel_ecount = make_image(cfg.assets.panel_ecount, cfg.canvas_rect, 1),
 
 		measure = make_mirror({ src = measure_src, dst = measure_dst, depth = 2 }),
 		measure_ruler = make_image(cfg.assets.measure_overlay, measure_dst, 3),
@@ -243,31 +248,82 @@ return function(cfg)
 	-- instead of derived from `waywall.active_res()` via helpers.res_mirror.
 	----------------------------------------------------------------------
 
-	local show = function(mode)
+	-- What Minecraft's debug overlay is currently showing, tracked rather than
+	-- read: nothing in state-output or the Lua API reports it, so the only
+	-- available signal is the keys that toggle it. `debug` follows F3 and gates
+	-- the e-count; `pie` follows Shift+F3 and gates the profiler chart.
+	--
+	-- This can desync -- press F3 with waywall unfocused, or start the game with
+	-- the overlay already up, and the flags are wrong until the next press. The
+	-- consequence is a wrongly-sized panel border, never a wrong reading, and it
+	-- self-corrects.
+	local overlay = { debug = false, pie = false }
+
+	local mode = nil
+
+	local refresh = function()
 		local is_thin = mode == "thin"
 		local is_tall = mode == "tall"
 		local is_lowest = mode == "lowest"
 		local is_wide = mode == "wide"
 		local any_tall = is_tall or is_lowest
+		local any_res = is_thin or any_tall
 
-		scene.border_thin(is_thin)
-		scene.border_wide(is_wide)
-		scene.border_tall(is_tall)
-		scene.border_tall_bare(is_lowest)
+		scene.frame_thin(is_thin)
+		scene.frame_wide(is_wide)
+		scene.frame_tall(is_tall)
+		scene.frame_tall_bare(is_lowest)
 
 		-- Boat eye is a tall-only tool, and pointless in `lowest` (which
 		-- exists to read the pie chart at minimum render cost).
 		scene.measure(is_tall)
 		scene.measure_ruler(is_tall)
 
-		scene.ecount_thin(is_thin)
-		scene.ecount_tall(any_tall)
+		-- Frame the cluster to fit what is in it: the whole panel when the pie
+		-- chart is up, just the counter when only the debug overlay is, and
+		-- nothing at all when neither is. An empty full-height box reads as a
+		-- bug rather than as a frame.
+		local show_pie = any_res and overlay.pie
+		local show_ecount = any_res and overlay.debug
 
-		scene.pie_thin(is_thin)
-		scene.pie_tall(any_tall)
+		scene.panel_full(show_pie)
+		scene.panel_ecount(show_ecount and not show_pie)
 
-		scene.percent_thin(is_thin)
-		scene.percent_tall(any_tall)
+		scene.ecount_thin(is_thin and show_ecount)
+		scene.ecount_tall(any_tall and show_ecount)
+
+		scene.pie_thin(is_thin and show_pie)
+		scene.pie_tall(any_tall and show_pie)
+
+		scene.percent_thin(is_thin and show_pie)
+		scene.percent_tall(any_tall and show_pie)
+	end
+
+	local show = function(new_mode)
+		mode = new_mode
+		refresh()
+	end
+
+	-- Both of these observe a keypress and then let it through (`return false`),
+	-- so the game still receives F3 / Shift+F3 as normal. Mirrors Minecraft's own
+	-- behaviour: F3 toggles the overlay, Shift+F3 toggles the pie and implies the
+	-- overlay is up.
+	local toggle_debug = function()
+		overlay.debug = not overlay.debug
+		if not overlay.debug then
+			overlay.pie = false
+		end
+		refresh()
+		return false
+	end
+
+	local toggle_debug_pie = function()
+		overlay.pie = not overlay.pie
+		if overlay.pie then
+			overlay.debug = true
+		end
+		refresh()
+		return false
 	end
 
 	-- Resolution feed for the OBS resize animation script
@@ -282,7 +338,9 @@ return function(cfg)
 		waywall.sleep(17)
 	end
 
-	local make_res = function(mode, res, sens)
+	-- `target_mode`, not `mode`: the outer `mode` is the live state that
+	-- `refresh` reads, and shadowing it here would be a trap for later edits.
+	local make_res = function(target_mode, res, sens)
 		return function()
 			local active_w, active_h = waywall.active_res()
 
@@ -296,7 +354,7 @@ return function(cfg)
 				publish_res(res.w, res.h)
 				waywall.set_resolution(res.w, res.h)
 				waywall.set_sensitivity(sens or 0)
-				show(mode)
+				show(target_mode)
 			end
 		end
 	end
@@ -362,6 +420,9 @@ return function(cfg)
 		[keys.ninbot] = toggle_ninbot,
 		[keys.cps] = toggle_cps,
 		[keys.crosshair] = toggle_crosshair,
+
+		[keys.debug] = toggle_debug,
+		[keys.debug_pie] = toggle_debug_pie,
 	}
 
 	if cfg.paceman.enable then
