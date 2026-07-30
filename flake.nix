@@ -8,7 +8,20 @@
     nixpkgs,
   }: let
     systems = ["x86_64-linux" "aarch64-linux"];
-    forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
+
+    # nixpkgs is imported with allowUnfree rather than used via legacyPackages
+    # because mcsr-jdk is Oracle GraalVM, whose GFTC licence nixpkgs classes as
+    # unfree. A consumer's own `allowUnfree` does not help here: `follows` shares
+    # the nixpkgs *source*, not its config, so `packages.<system>` is always
+    # evaluated against this instance.
+    forAllSystems = f:
+      nixpkgs.lib.genAttrs systems (
+        system:
+          f (import nixpkgs {
+            inherit system;
+            config.allowUnfree = true;
+          })
+      );
   in {
     packages = forAllSystems (pkgs: {
       ninjabrainbot = pkgs.callPackage ./nix/pkgs/ninjabrain-bot.nix {};
