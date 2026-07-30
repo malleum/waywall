@@ -539,8 +539,15 @@ in {
         default = 60;
         description = ''
           Width, in tall-render pixels, of the slice magnified into the boat-eye
-          window. This sets the scale of the pixel ruler: the ruler's marked
-          span divided by this is how many render pixels one mark covers.
+          window. This is what sets the scale of the pixel ruler in `overlay`,
+          so it is not a free choice: for one ruler cell to mean one render
+          pixel, it must be
+
+            canvas.width / (ruler span in px / number of cells)
+
+          e.g. a ruler of 18 cells spanning 1152px of a 1920px canvas is 64px
+          per cell, so this must be 30. Get it wrong and the ruler is a
+          decoration that reads the wrong number of pixels.
         '';
       };
       srcHeight = lib.mkOption {
