@@ -136,9 +136,7 @@
       frame_thin = [(gameBox cfg.resolutions.thin)];
       frame_wide = [(gameBox cfg.resolutions.wide)];
       frame_tall = [(gameBox cfg.resolutions.tall) measureBox];
-      # `lowest` shares the tall resolution but skips the boat-eye window, so it
-      # needs a frame without the measuring box.
-      frame_tall_bare = [(gameBox cfg.resolutions.tall)];
+      frame_lowest = [(gameBox cfg.resolutions.lowest)];
 
       panel_full = [panelBox];
       panel_ecount = [ecountBox];
@@ -206,10 +204,11 @@
       thin = cfg.resolutions.thin;
       wide = cfg.resolutions.wide;
       tall = cfg.resolutions.tall;
+      lowest = cfg.resolutions.lowest;
     };
 
     sensitivity = {
-      inherit (cfg.sensitivity) base thin wide tall;
+      inherit (cfg.sensitivity) base thin wide tall lowest;
     };
 
     inherit (cfg) repeat_rate repeat_delay confine_pointer;
@@ -224,6 +223,7 @@
     };
 
     panel = {
+      inherit (cfg.panel) frame;
       pie = {inherit (cfg.panel.pie) x y scale;};
       percent = {inherit (cfg.panel.percent) x y scale;};
       ecount = {
@@ -253,7 +253,7 @@
       frame_thin = "${assets}/frame_thin.png";
       frame_wide = "${assets}/frame_wide.png";
       frame_tall = "${assets}/frame_tall.png";
-      frame_tall_bare = "${assets}/frame_tall_bare.png";
+      frame_lowest = "${assets}/frame_lowest.png";
       panel_full = "${assets}/panel_full.png";
       panel_ecount = "${assets}/panel_ecount.png";
       crosshair = "${assets}/crosshair.png";
@@ -268,7 +268,7 @@
     };
 
     cps = {
-      inherit (cfg.cps) command process;
+      toggle_command = cfg.cps.toggleCommand;
     };
 
     paceman = {
@@ -425,7 +425,23 @@ in {
           w = 384;
           h = 16384;
         };
-        description = "Tall resolution, shared by the tall and lowest modes.";
+        description = "Tall resolution, for tall BT and boat eye.";
+      };
+      lowest = lib.mkOption {
+        type = resType;
+        default = {
+          w = 384;
+          h = 864;
+        };
+        description = ''
+          Resolution for the `lowest` mode -- a short window purely for reading
+          the profiler pie chart, with no boat-eye overlay and no sensitivity
+          change. The height is what decides how much of the screen the window
+          covers, since waywall composites 1:1: 864 of a 1080 canvas is 80%.
+
+          The pie chart and percentage source rects are derived from whatever is
+          set here, so changing it keeps the mirrors aimed correctly.
+        '';
       };
     };
 
@@ -455,6 +471,14 @@ in {
           Sensitivity in tall mode; null keeps `base`. Tall wants a much lower
           value because a pixel of mouse motion covers far more angle on a
           16384px-tall render.
+        '';
+      };
+      lowest = lib.mkOption {
+        type = lib.types.nullOr lib.types.numbers.nonnegative;
+        default = null;
+        description = ''
+          Sensitivity in `lowest` mode; null keeps `base`. Unlike tall, this is
+          not a mode you aim in, so leaving it alone is usually right.
         '';
       };
     };
@@ -509,6 +533,22 @@ in {
     };
 
     panel = {
+      frame = lib.mkOption {
+        type = lib.types.enum ["full" "ecount" "none"];
+        default = "full";
+        description = ''
+          Which border to draw around the right-hand instrument cluster:
+          `full` frames all of it, `ecount` frames only the eye counter, `none`
+          draws no frame.
+
+          This is a fixed choice rather than one that follows what is on screen,
+          because waywall cannot report that. Mirrors expose only
+          close/get_depth/set_depth and no API function reads pixel contents, so
+          there is no way to tell "the profiler chart is up" from "that region of
+          the game is blank" -- meaning a frame that hugs whichever widgets
+          currently have something in them is not implementable.
+        '';
+      };
       pie = {
         x = lib.mkOption {
           type = lib.types.int;
@@ -656,15 +696,22 @@ in {
     };
 
     cps = {
-      command = lib.mkOption {
+      toggleCommand = lib.mkOption {
         type = lib.types.str;
-        default = "cps-overlay";
-        description = "Command that starts the clicks-per-second overlay.";
-      };
-      process = lib.mkOption {
-        type = lib.types.str;
-        default = "cps-overlay";
-        description = "pgrep/pkill -f pattern for the CPS overlay.";
+        default = "systemctl --user is-active --quiet cps-overlay && systemctl --user stop cps-overlay || systemctl --user start cps-overlay";
+        description = ''
+          Shell command that starts the clicks-per-second overlay if it is not
+          running and stops it if it is.
+
+          This must start the overlay against the *host* compositor, not inside
+          waywall. waywall overwrites its own WAYLAND_DISPLAY with its nested
+          socket (waywall/main.c), so anything spawned with `waywall.exec` talks
+          to waywall -- which implements no wlr-layer-shell, leaving a
+          layer-shell client with no protocol to bind and nothing on screen. A
+          systemd user unit is the reliable route: its environment still has the
+          host display, and being a host client is also what puts the counter
+          above the waywall window instead of inside it.
+        '';
       };
     };
 
@@ -713,17 +760,6 @@ in {
       cps = "*-ctrl-7";
       crosshair = "*-ctrl-8";
       paceman = "*-ctrl-p";
-
-      # The two binds that open Minecraft's debug overlay, so the panel can size
-      # itself to what the overlay is actually showing. These fire and then pass
-      # the input through -- they observe, they do not replace the bind.
-      #
-      # IMPORTANT: actions are matched *before* remaps and against the host
-      # keymap (waywall/server/wl_seat.c: "Actions should take priority over
-      # remaps"), so these must name the key you physically press, not the key
-      # the remap sends. With `remaps."m5" = "f3"`, that means `m5`, not `f3`.
-      debug = "m5";
-      debug_pie = "shift-m5";
     };
   };
 

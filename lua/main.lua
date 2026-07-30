@@ -152,19 +152,29 @@ return function(cfg)
 	-- Geometry
 	----------------------------------------------------------------------
 
-	local thin = cfg.res.thin
 	local tall = cfg.res.tall
 
 	local panel = cfg.panel
 
-	-- Pie chart. The chart itself is 340x178 of source pixels; with colour
-	-- keying on, the percentage labels underneath are dropped from the source
-	-- rect and mirrored separately (below) so they can be positioned and
-	-- scaled independently. Destination is 420x423 at scale 1 -- the extra
-	-- height is deliberate vertical stretch that turns the game's squashed
-	-- ellipse back into a circle.
-	local pie_src_thin = { x = thin.w - 340, y = thin.h - 406, w = 340, h = 178 }
-	local pie_src_tall = { x = 44, y = tall.h - 406, w = 340, h = 178 }
+	-- Pie chart and percentage source rects, as a function of the render
+	-- resolution. Minecraft anchors the profiler chart to the bottom-left of the
+	-- window and the percentage list to the bottom-right, so both are a fixed
+	-- offset from the far edges whatever the resolution is -- which is why these
+	-- are derived rather than written out per mode.
+	--
+	-- The chart is 340x178 source pixels. With colour keying on, the percentage
+	-- labels underneath fall outside this rect and are mirrored separately
+	-- (below) so they can be placed and scaled on their own.
+	local pie_src = function(res)
+		return { x = res.w - 340, y = res.h - 406, w = 340, h = 178 }
+	end
+	local percent_src = function(res)
+		return { x = res.w - 93, y = res.h - 221, w = 33, h = 25 }
+	end
+
+	-- Destination is 420x423 at scale 1 -- the extra height over the 178px source
+	-- is deliberate vertical stretch, turning the game's squashed ellipse back
+	-- into a circle.
 	local pie_dst = {
 		x = panel.pie.x,
 		y = panel.pie.y,
@@ -172,8 +182,6 @@ return function(cfg)
 		h = math.floor(423 * panel.pie.scale),
 	}
 
-	local percent_src_thin = { x = thin.w - 93, y = thin.h - 221, w = 33, h = 25 }
-	local percent_src_tall = { x = 291, y = tall.h - 221, w = 33, h = 25 }
 	local percent_dst = {
 		x = panel.percent.x,
 		y = panel.percent.y,
@@ -211,12 +219,12 @@ return function(cfg)
 	local scene = {
 		-- Borders are drawn under everything else (depth 1) so mirrors and
 		-- text sit on top of them. Frames (which depend on the resolution) and
-		-- panels (which depend on what the debug overlay is showing) are
-		-- separate images so they can be combined freely.
+		-- panels (which depend on what is in them) are separate images so they
+		-- can be combined freely.
 		frame_thin = make_image(cfg.assets.frame_thin, cfg.canvas_rect, 1),
 		frame_wide = make_image(cfg.assets.frame_wide, cfg.canvas_rect, 1),
 		frame_tall = make_image(cfg.assets.frame_tall, cfg.canvas_rect, 1),
-		frame_tall_bare = make_image(cfg.assets.frame_tall_bare, cfg.canvas_rect, 1),
+		frame_lowest = make_image(cfg.assets.frame_lowest, cfg.canvas_rect, 1),
 
 		panel_full = make_image(cfg.assets.panel_full, cfg.canvas_rect, 1),
 		panel_ecount = make_image(cfg.assets.panel_ecount, cfg.canvas_rect, 1),
@@ -224,21 +232,24 @@ return function(cfg)
 		measure = make_mirror({ src = measure_src, dst = measure_dst, depth = 2 }),
 		measure_ruler = make_image(cfg.assets.measure_overlay, measure_dst, 3),
 
-		ecount_thin = make_keyed_mirrors(ecount_src, ecount_dst, 2, {
-			{ input = "#DDDDDD", output = cfg.colors.text },
-		}),
-		ecount_tall = make_keyed_mirrors(ecount_src, ecount_dst, 2, {
-			{ input = "#DDDDDD", output = cfg.colors.text },
-		}),
-
-		pie_thin = make_keyed_mirrors(pie_src_thin, pie_dst, 2, pie_keys),
-		pie_tall = make_keyed_mirrors(pie_src_tall, pie_dst, 2, pie_keys),
-
-		percent_thin = make_keyed_mirrors(percent_src_thin, percent_dst, 3, percent_keys),
-		percent_tall = make_keyed_mirrors(percent_src_tall, percent_dst, 3, percent_keys),
-
 		crosshair = make_image(cfg.assets.crosshair, cfg.crosshair_rect, 4),
 	}
+
+	-- One set of instrument mirrors per resolution that has them. The e-count
+	-- source rect is the same everywhere (the debug text is anchored top-left),
+	-- but the pie and percentages move with the far edges of the window.
+	local instruments = {}
+	for _, name in ipairs({ "thin", "tall", "lowest" }) do
+		local res = cfg.res[name]
+
+		instruments[name] = {
+			ecount = make_keyed_mirrors(ecount_src, ecount_dst, 2, {
+				{ input = "#DDDDDD", output = cfg.colors.text },
+			}),
+			pie = make_keyed_mirrors(pie_src(res), pie_dst, 2, pie_keys),
+			percent = make_keyed_mirrors(percent_src(res), percent_dst, 3, percent_keys),
+		}
+	end
 
 	----------------------------------------------------------------------
 	-- Modes
@@ -248,82 +259,48 @@ return function(cfg)
 	-- instead of derived from `waywall.active_res()` via helpers.res_mirror.
 	----------------------------------------------------------------------
 
-	-- What Minecraft's debug overlay is currently showing, tracked rather than
-	-- read: nothing in state-output or the Lua API reports it, so the only
-	-- available signal is the keys that toggle it. `debug` follows F3 and gates
-	-- the e-count; `pie` follows Shift+F3 and gates the profiler chart.
+	-- Which panel frame to draw. Sizing it to what the mirrors are *actually*
+	-- picking up is not possible: waywall's Lua API has no way to read back what
+	-- a mirror is sampling. Mirrors expose only close/get_depth/set_depth, and
+	-- none of the module's other functions touch pixel contents, so nothing can
+	-- distinguish "the profiler chart is up" from "that region of the game is
+	-- empty". Hence a configured choice rather than a detected one.
 	--
-	-- This can desync -- press F3 with waywall unfocused, or start the game with
-	-- the overlay already up, and the flags are wrong until the next press. The
-	-- consequence is a wrongly-sized panel border, never a wrong reading, and it
-	-- self-corrects.
-	local overlay = { debug = false, pie = false }
+	--   "full"   -- always frame the whole cluster
+	--   "ecount" -- always frame just the counter, and leave the pie unframed
+	--   "none"   -- no panel frame at all
+	local frame_mode = cfg.panel.frame
 
 	local mode = nil
 
-	local refresh = function()
+	local show = function(new_mode)
+		mode = new_mode
+
 		local is_thin = mode == "thin"
 		local is_tall = mode == "tall"
 		local is_lowest = mode == "lowest"
 		local is_wide = mode == "wide"
-		local any_tall = is_tall or is_lowest
-		local any_res = is_thin or any_tall
+		local any_res = is_thin or is_tall or is_lowest
 
 		scene.frame_thin(is_thin)
 		scene.frame_wide(is_wide)
 		scene.frame_tall(is_tall)
-		scene.frame_tall_bare(is_lowest)
+		scene.frame_lowest(is_lowest)
 
-		-- Boat eye is a tall-only tool, and pointless in `lowest` (which
-		-- exists to read the pie chart at minimum render cost).
+		-- Boat eye is a tall-only tool, and pointless in `lowest` (which exists
+		-- to read the pie chart at a smaller render).
 		scene.measure(is_tall)
 		scene.measure_ruler(is_tall)
 
-		-- Frame the cluster to fit what is in it: the whole panel when the pie
-		-- chart is up, just the counter when only the debug overlay is, and
-		-- nothing at all when neither is. An empty full-height box reads as a
-		-- bug rather than as a frame.
-		local show_pie = any_res and overlay.pie
-		local show_ecount = any_res and overlay.debug
+		scene.panel_full(any_res and frame_mode == "full")
+		scene.panel_ecount(any_res and frame_mode == "ecount")
 
-		scene.panel_full(show_pie)
-		scene.panel_ecount(show_ecount and not show_pie)
-
-		scene.ecount_thin(is_thin and show_ecount)
-		scene.ecount_tall(any_tall and show_ecount)
-
-		scene.pie_thin(is_thin and show_pie)
-		scene.pie_tall(any_tall and show_pie)
-
-		scene.percent_thin(is_thin and show_pie)
-		scene.percent_tall(any_tall and show_pie)
-	end
-
-	local show = function(new_mode)
-		mode = new_mode
-		refresh()
-	end
-
-	-- Both of these observe a keypress and then let it through (`return false`),
-	-- so the game still receives F3 / Shift+F3 as normal. Mirrors Minecraft's own
-	-- behaviour: F3 toggles the overlay, Shift+F3 toggles the pie and implies the
-	-- overlay is up.
-	local toggle_debug = function()
-		overlay.debug = not overlay.debug
-		if not overlay.debug then
-			overlay.pie = false
+		for name, set in pairs(instruments) do
+			local active = mode == name
+			set.ecount(active)
+			set.pie(active)
+			set.percent(active)
 		end
-		refresh()
-		return false
-	end
-
-	local toggle_debug_pie = function()
-		overlay.pie = not overlay.pie
-		if overlay.pie then
-			overlay.debug = true
-		end
-		refresh()
-		return false
 	end
 
 	-- Resolution feed for the OBS resize animation script
@@ -382,16 +359,18 @@ return function(cfg)
 		end
 	end
 
-	-- The CPS counter is a wlr-layer-shell client of the *host* compositor, not
-	-- of waywall, so it floats above the waywall window rather than inside it.
-	-- That also means it is not a floating view waywall can show/hide, hence
-	-- start/stop rather than a visibility toggle.
+	-- The CPS counter must NOT go through waywall.exec. waywall overwrites its own
+	-- WAYLAND_DISPLAY with its nested socket (waywall/main.c:130), so anything it
+	-- spawns connects to waywall -- and waywall implements no wlr-layer-shell, so
+	-- a layer-shell client started that way finds no such protocol and silently
+	-- fails to appear.
+	--
+	-- It has to run against the host compositor instead, which is what the
+	-- configured command does (a systemd user unit, whose environment still has
+	-- the host display). Being a host client is also what puts it above the
+	-- waywall window rather than inside it.
 	local toggle_cps = function()
-		if running(cfg.cps.process) then
-			os.execute("pkill -f " .. string.format("%q", cfg.cps.process))
-		else
-			waywall.exec(cfg.cps.command)
-		end
+		os.execute(cfg.cps.toggle_command)
 	end
 
 	local crosshair_shown = false
@@ -410,7 +389,9 @@ return function(cfg)
 		[keys.thin] = make_res("thin", cfg.res.thin, cfg.sensitivity.thin),
 		[keys.wide] = make_res("wide", cfg.res.wide, cfg.sensitivity.wide),
 		[keys.tall] = make_res("tall", cfg.res.tall, cfg.sensitivity.tall),
-		[keys.lowest] = make_res("lowest", cfg.res.tall, cfg.sensitivity.tall),
+		-- `lowest` has its own resolution and deliberately no sensitivity change:
+		-- unlike tall, it is not a mode you aim in.
+		[keys.lowest] = make_res("lowest", cfg.res.lowest, cfg.sensitivity.lowest),
 
 		[keys.switch_layout] = function()
 			write_layout(layout == "mcsr" and "alt" or "mcsr")
@@ -420,9 +401,6 @@ return function(cfg)
 		[keys.ninbot] = toggle_ninbot,
 		[keys.cps] = toggle_cps,
 		[keys.crosshair] = toggle_crosshair,
-
-		[keys.debug] = toggle_debug,
-		[keys.debug_pie] = toggle_debug_pie,
 	}
 
 	if cfg.paceman.enable then
