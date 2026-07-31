@@ -479,20 +479,47 @@ in {
         };
         description = "Tall resolution, for tall BT and boat eye.";
       };
-      lowest = lib.mkOption {
+    };
+
+    # `lowest` is not a plain resolution like the others: the instance renders
+    # tall (for boat-eye vertical precision) and only a centred slice of it is
+    # mirrored onto screen, shorter than the render itself. See the `lowestDst`
+    # /`lowestSrc` comment above for why this can't just be a resType.
+    lowest = {
+      render = lib.mkOption {
         type = resType;
         default = {
           w = 384;
-          h = 864;
+          h = 16384;
         };
+        description = "Render resolution `lowest` mode uses -- same as `tall`, for the same eye-throw precision.";
+      };
+      srcWidth = lib.mkOption {
+        type = lib.types.ints.positive;
+        default = 384;
+        description = "Width, in render pixels, of the centred slice mirrored on screen.";
+      };
+      srcHeight = lib.mkOption {
+        type = lib.types.ints.positive;
+        default = 864;
         description = ''
-          Resolution for the `lowest` mode -- a short window purely for reading
-          the profiler pie chart, with no boat-eye overlay and no sensitivity
-          change. The height is what decides how much of the screen the window
-          covers, since waywall composites 1:1: 864 of a 1080 canvas is 80%.
-
-          The pie chart and percentage source rects are derived from whatever is
-          set here, so changing it keeps the mirrors aimed correctly.
+          Height, in render pixels, of the centred slice mirrored on screen. 864
+          of a 16384px-tall render is a few degrees of vertical FOV, i.e. zoomed
+          in further than `tall`'s direct view.
+        '';
+      };
+      width = lib.mkOption {
+        type = lib.types.ints.positive;
+        default = 384;
+        description = "On-screen width of the mirrored slice.";
+      };
+      height = lib.mkOption {
+        type = lib.types.ints.positive;
+        default = 864;
+        description = ''
+          On-screen height of the mirrored slice. 864 of a 1080 canvas is 80%
+          screen height. Pie chart and percentage source rects are derived from
+          this, so they stay aimed correctly if it changes.
         '';
       };
     };

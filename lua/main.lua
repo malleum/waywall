@@ -224,7 +224,17 @@ return function(cfg)
 		frame_thin = make_image(cfg.assets.frame_thin, cfg.canvas_rect, 1),
 		frame_wide = make_image(cfg.assets.frame_wide, cfg.canvas_rect, 1),
 		frame_tall = make_image(cfg.assets.frame_tall, cfg.canvas_rect, 1),
-		frame_lowest = make_image(cfg.assets.frame_lowest, cfg.canvas_rect, 1),
+
+		-- `lowest` renders full tall (16384) but only an 864px slice of it is
+		-- meant to be visible. cover_lowest paints out the rest of the displayed
+		-- viewport at depth 1 (the Minecraft surface sits below every
+		-- positive-depth object, so this hides it without hiding the mirror);
+		-- lowest_mirror redraws the wanted slice, scaled down, into the hole at
+		-- depth 2; frame_lowest borders that mirror from depth 4, same reasoning
+		-- as measure_frame below.
+		cover_lowest = make_image(cfg.assets.cover_lowest, cfg.canvas_rect, 1),
+		lowest_mirror = make_mirror({ src = cfg.lowest.src, dst = cfg.lowest.dst, depth = 2 }),
+		frame_lowest = make_image(cfg.assets.frame_lowest, cfg.canvas_rect, 4),
 
 		panel_full = make_image(cfg.assets.panel_full, cfg.canvas_rect, 1),
 		panel_ecount = make_image(cfg.assets.panel_ecount, cfg.canvas_rect, 1),
@@ -293,6 +303,8 @@ return function(cfg)
 		scene.frame_thin(is_thin)
 		scene.frame_wide(is_wide)
 		scene.frame_tall(is_tall)
+		scene.cover_lowest(is_lowest)
+		scene.lowest_mirror(is_lowest)
 		scene.frame_lowest(is_lowest)
 
 		-- Boat eye is a tall-only tool, and pointless in `lowest` (which exists
