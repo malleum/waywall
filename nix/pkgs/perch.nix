@@ -31,6 +31,7 @@
   lanShiftTabs,
   screenDelay,
   hostDelay,
+  commandKey,
   doneFile,
   keyDelay,
 }:
@@ -90,9 +91,14 @@ writeShellApplication {
     # that, so this waits on the clock instead.
     ms ${toString hostDelay}
 
-    # Slash opens chat already holding the command prefix, so the text typed
-    # here is the command without its leading "/".
-    key 53:1 53:0
+    # The command key opens chat already holding the "/" prefix, so the text
+    # typed below is the command without its leading slash.
+    #
+    # This is whatever key_key.command is bound to, not necessarily slash. Get
+    # it wrong and chat never opens, which is not a no-op: the command is then
+    # typed into the world, where its letters are game binds and "t" throws an
+    # item on the ground.
+    key ${toString commandKey}:1 ${toString commandKey}:0
     ms ${toString screenDelay}
     ydotool type --key-delay ${toString keyDelay} "$dragon_command"
     key 28:1 28:0

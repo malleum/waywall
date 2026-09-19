@@ -152,6 +152,7 @@
       lanShiftTabs
       screenDelay
       hostDelay
+      commandKey
       doneFile
       keyDelay
       ;
@@ -894,6 +895,21 @@ in {
           signal and was what this did at first, but noticing the line cost
           about four seconds; opening to LAN is local and takes a fraction of
           that, so it waits on the clock instead.
+        '';
+      };
+
+      commandKey = lib.mkOption {
+        type = lib.types.ints.positive;
+        default = 53;
+        example = 26;
+        description = ''
+          evdev keycode of the key bound to `key_key.command`, which opens chat
+          with the "/" prefix already in it. 53 is slash, the vanilla bind; 26
+          is left bracket.
+
+          It has to match the instance's options.txt. On the wrong key chat
+          never opens and the command is typed into the world instead, where
+          its letters are game binds -- "t" alone throws an item on the ground.
         '';
       };
 
