@@ -152,8 +152,6 @@
       lanShiftTabs
       screenDelay
       hostDelay
-      hostTimeout
-      logFile
       doneFile
       keyDelay
       ;
@@ -349,7 +347,7 @@
       inherit (cfg.perch) enable;
       command = lib.getExe perchScript;
       done_file = cfg.perch.doneFile;
-      timeout = cfg.perch.hostTimeout + 4000;
+      timeout = cfg.perch.hostDelay + 5000;
       typing_layout = cfg.perch.typingLayout;
       typing_variant = cfg.perch.typingVariant;
       keymap_delay = cfg.perch.keymapDelay;
@@ -885,28 +883,18 @@ in {
         '';
       };
 
-      logFile = lib.mkOption {
-        type = lib.types.nullOr lib.types.path;
-        default = null;
-        example = lib.literalExpression ''"''${config.home.homeDirectory}/.local/share/PrismLauncher/instances/1.16.5/.minecraft/logs/latest.log"'';
-        description = ''
-          Minecraft's latest.log. When set, the script waits for the "Local game
-          hosted on port" line instead of a fixed delay, which is the difference
-          between reliably landing the command and occasionally typing it into a
-          world that is not hosting yet.
-        '';
-      };
-
       hostDelay = lib.mkOption {
         type = lib.types.ints.positive;
-        default = 900;
-        description = "Fixed wait for the LAN server when `logFile` is null.";
-      };
+        default = 500;
+        description = ''
+          Milliseconds waited for the integrated server after "Start LAN World",
+          before the command is typed. Typing early loses the command.
 
-      hostTimeout = lib.mkOption {
-        type = lib.types.ints.positive;
-        default = 5000;
-        description = "How long to wait for the log line before typing anyway.";
+          Watching latest.log for "Local game hosted on port" is the exact
+          signal and was what this did at first, but noticing the line cost
+          about four seconds; opening to LAN is local and takes a fraction of
+          that, so it waits on the clock instead.
+        '';
       };
 
       keyDelay = lib.mkOption {

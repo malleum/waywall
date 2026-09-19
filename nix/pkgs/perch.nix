@@ -25,22 +25,19 @@
   writeShellApplication,
   ydotool,
   coreutils,
-  gnugrep,
 }: {
   dragonCommand,
   pauseShiftTabs,
   lanShiftTabs,
   screenDelay,
   hostDelay,
-  hostTimeout,
-  logFile,
   doneFile,
   keyDelay,
 }:
 writeShellApplication {
   name = "waywall-perch";
 
-  runtimeInputs = [ydotool coreutils gnugrep];
+  runtimeInputs = [ydotool coreutils];
 
   text = ''
     # waywall.exec inherits waywall's own environment, which is the session's,
@@ -49,11 +46,6 @@ writeShellApplication {
     export YDOTOOL_SOCKET="''${YDOTOOL_SOCKET:-/run/ydotoold/socket}"
 
     done_file=${lib.escapeShellArg doneFile}
-    log_file=${lib.escapeShellArg (
-      if logFile == null
-      then ""
-      else toString logFile
-    )}
     dragon_command=${lib.escapeShellArg dragonCommand}
 
     # The caller (lua/main.lua) waits on this file to know when it is safe to
@@ -77,13 +69,6 @@ writeShellApplication {
       key "''${args[@]}"
     }
 
-    # Byte offset to start reading the log from, so the wait below cannot be
-    # satisfied by a "Local game hosted on port" line from an earlier world.
-    offset=1
-    if [ -n "$log_file" ] && [ -r "$log_file" ]; then
-      offset=$(($(wc -c < "$log_file") + 1))
-    fi
-
     # Pause menu. Shift-Tab walks up from the bottom of the button list, so the
     # count depends on what mods have added to that screen (fast-reset adds one).
     key 1:1 1:0
@@ -99,21 +84,11 @@ writeShellApplication {
     key 15:1 15:0
     key 28:1 28:0
 
-    # Typing the command before the integrated server is up loses it, so wait
-    # for the chat line that says the world is hosted. Without a log file to
-    # watch there is nothing to wait on but the clock.
-    if [ -n "$log_file" ]; then
-      deadline=$(($(date +%s%3N) + ${toString hostTimeout}))
-      until tail -c "+$offset" "$log_file" 2>/dev/null |
-        grep -q "Local game hosted on port"; do
-        if [ "$(date +%s%3N)" -ge "$deadline" ]; then
-          break
-        fi
-        ms 25
-      done
-    else
-      ms ${toString hostDelay}
-    fi
+    # Typing the command before the integrated server is up loses it. Watching
+    # the log for "Local game hosted on port" would be the exact signal, but it
+    # costs seconds to notice; opening to LAN is local and takes a fraction of
+    # that, so this waits on the clock instead.
+    ms ${toString hostDelay}
 
     # Slash opens chat already holding the command prefix, so the text typed
     # here is the command without its leading "/".
