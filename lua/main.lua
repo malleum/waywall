@@ -394,6 +394,47 @@ return function(cfg)
 		os.execute(cfg.cps.toggle_command)
 	end
 
+	-- One-cycle practice: hand control to the ydotool script (nix/pkgs/perch.nix)
+	-- for as long as it takes to walk the pause and LAN menus and type the
+	-- dragon command.
+	--
+	-- The keymap swap around it is the whole trick. ydotool emits evdev
+	-- scancodes as a US keyboard would, but the characters that reach the chat
+	-- box are whatever waywall's active xkb layout makes of them -- so under the
+	-- search-craft layout the command arrives scrambled, and the remaps (0,
+	-- Backspace, the Tab/Grave swap) would eat parts of it outright. A plain
+	-- layout with no remaps is installed for the duration and put back after.
+	local perch = function()
+		local active = (layout == "mcsr") and cfg.layouts.mcsr or cfg.layouts.alt
+
+		waywall.set_remaps({})
+		waywall.set_keymap({
+			layout = cfg.perch.typing_layout,
+			variant = cfg.perch.typing_variant,
+		})
+		waywall.sleep(cfg.perch.keymap_delay)
+
+		waywall.exec(cfg.perch.command)
+
+		-- waywall.exec is asynchronous and gives back no handle, so the script
+		-- touches a file when it is done typing. Restoring the layout early
+		-- would cut the command in half, and never restoring it would leave the
+		-- game unplayable, hence the poll with a deadline.
+		local deadline = waywall.current_time() + cfg.perch.timeout
+		while waywall.current_time() < deadline do
+			local done = io.open(cfg.perch.done_file, "r")
+			if done then
+				done:close()
+				os.remove(cfg.perch.done_file)
+				break
+			end
+			waywall.sleep(25)
+		end
+
+		waywall.set_keymap({ layout = active.layout, variant = active.variant })
+		waywall.set_remaps(active.remaps)
+	end
+
 	local crosshair_shown = false
 	local toggle_crosshair = function()
 		crosshair_shown = not crosshair_shown
@@ -423,6 +464,13 @@ return function(cfg)
 		[keys.cps] = toggle_cps,
 		[keys.crosshair] = toggle_crosshair,
 	}
+
+	-- ingame_only: every key the script sends assumes the pause menu opens from
+	-- a world. Fired from the title screen or the wall it would walk a menu that
+	-- is not there.
+	if cfg.perch.enable then
+		config.actions[keys.perch] = helpers.ingame_only(perch)
+	end
 
 	if cfg.paceman.enable then
 		config.actions[keys.paceman] = function()

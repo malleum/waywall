@@ -141,6 +141,24 @@
 
   lowestBox = (box lowestDst) // {mask = cfg.border.maskCorners;};
 
+  # One-cycle practice: open to LAN with cheats and perch the dragon. Built
+  # here rather than taken as a command string because every timing and
+  # tab-count in it is an option below.
+  perchScript = (pkgs.callPackage "${self}/nix/pkgs/perch.nix" {}) {
+    inherit
+      (cfg.perch)
+      dragonCommand
+      pauseShiftTabs
+      lanShiftTabs
+      screenDelay
+      hostDelay
+      hostTimeout
+      logFile
+      doneFile
+      keyDelay
+      ;
+  };
+
   assets = import ../lib/assets.nix {inherit (pkgs) runCommand python3;} {
     canvas = {
       w = cfg.canvas.width;
@@ -325,6 +343,16 @@
 
     paceman = {
       inherit (cfg.paceman) enable command process;
+    };
+
+    perch = {
+      inherit (cfg.perch) enable;
+      command = lib.getExe perchScript;
+      done_file = cfg.perch.doneFile;
+      timeout = cfg.perch.hostTimeout + 4000;
+      typing_layout = cfg.perch.typingLayout;
+      typing_variant = cfg.perch.typingVariant;
+      keymap_delay = cfg.perch.keymapDelay;
     };
 
     keys = cfg.keys;
@@ -806,6 +834,129 @@ in {
       };
     };
 
+    # One-cycle practice. The keybind opens the world to LAN with cheats on and
+    # forces the ender dragon to perch, so a perch can be retried immediately
+    # instead of waiting out a circle. See nix/pkgs/perch.nix for why this is
+    # keyboard automation (and ydotool rather than wtype).
+    perch = {
+      enable = lib.mkEnableOption ''
+        a keybind that opens the world to LAN with cheats and forces the ender
+        dragon to perch. Needs ydotool: set `programs.ydotool.enable` on the
+        system and put the user in `programs.ydotool.group`
+      '';
+
+      dragonCommand = lib.mkOption {
+        type = lib.types.str;
+        default = "data merge entity @e[type=ender_dragon,limit=1] {DragonPhase:2}";
+        description = ''
+          Chat command typed after opening to LAN, without its leading slash.
+          DragonPhase 2 is "fly to the portal and land", so the dragon perches
+          at once rather than finishing its circle. Correct for 1.16.x.
+        '';
+      };
+
+      pauseShiftTabs = lib.mkOption {
+        type = lib.types.ints.positive;
+        default = 3;
+        description = ''
+          Shift-Tab presses on the pause menu to land on "Open to LAN".
+
+          Shift-Tab walks up from the bottom of the button list, so the count is
+          2 on vanilla 1.16 and 3 with fast-reset, which adds a button. If the
+          bind ends up quitting the world instead, this is the number to change.
+        '';
+      };
+
+      lanShiftTabs = lib.mkOption {
+        type = lib.types.ints.positive;
+        default = 1;
+        description = ''
+          Shift-Tab presses on the LAN screen to land on "Allow Cheats" before
+          it is toggled. One Tab and Enter follow, for "Start LAN World".
+        '';
+      };
+
+      screenDelay = lib.mkOption {
+        type = lib.types.ints.positive;
+        default = 120;
+        description = ''
+          Milliseconds waited after each screen change. Too low and keys land
+          on the screen that is still on its way out.
+        '';
+      };
+
+      logFile = lib.mkOption {
+        type = lib.types.nullOr lib.types.path;
+        default = null;
+        example = lib.literalExpression ''"''${config.home.homeDirectory}/.local/share/PrismLauncher/instances/1.16.5/.minecraft/logs/latest.log"'';
+        description = ''
+          Minecraft's latest.log. When set, the script waits for the "Local game
+          hosted on port" line instead of a fixed delay, which is the difference
+          between reliably landing the command and occasionally typing it into a
+          world that is not hosting yet.
+        '';
+      };
+
+      hostDelay = lib.mkOption {
+        type = lib.types.ints.positive;
+        default = 900;
+        description = "Fixed wait for the LAN server when `logFile` is null.";
+      };
+
+      hostTimeout = lib.mkOption {
+        type = lib.types.ints.positive;
+        default = 5000;
+        description = "How long to wait for the log line before typing anyway.";
+      };
+
+      keyDelay = lib.mkOption {
+        type = lib.types.ints.positive;
+        default = 12;
+        description = "ydotool --key-delay, in milliseconds.";
+      };
+
+      typingLayout = lib.mkOption {
+        type = lib.types.str;
+        default = "us";
+        description = ''
+          Keymap installed for the duration of the script, and restored after.
+
+          ydotool speaks evdev scancodes with a US keyboard in mind, while the
+          characters the command needs (`@ [ ] { } :` and capitals) come out of
+          whatever xkb layout waywall has active -- so under the MCSR layout the
+          command would arrive as nonsense. Remaps are cleared for the same
+          reason: they are game binds, and several of them (0, Backspace) would
+          eat the text.
+        '';
+      };
+
+      typingVariant = lib.mkOption {
+        type = lib.types.str;
+        default = "";
+        description = "Variant for `typingLayout`.";
+      };
+
+      keymapDelay = lib.mkOption {
+        type = lib.types.ints.positive;
+        default = 100;
+        description = ''
+          Milliseconds between installing the typing keymap and sending the
+          first key, so the game has applied it before anything arrives.
+        '';
+      };
+
+      doneFile = lib.mkOption {
+        type = lib.types.str;
+        default = "${config.home.homeDirectory}/.waywall_perch_done";
+        defaultText = lib.literalExpression "\"\${config.home.homeDirectory}/.waywall_perch_done\"";
+        description = ''
+          File the script touches when it has finished typing. waywall.exec is
+          asynchronous, so this is what tells the Lua side that the MCSR keymap
+          can go back without cutting the command in half.
+        '';
+      };
+    };
+
     resizeAnimation = {
       enable = lib.mkEnableOption ''
         publishing the active resolution to a file so the OBS resize-animation
@@ -839,6 +990,7 @@ in {
       cps = "*-ctrl-7";
       crosshair = "*-ctrl-8";
       paceman = "*-ctrl-p";
+      perch = "*-ctrl-9";
     };
   };
 

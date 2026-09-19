@@ -15,6 +15,7 @@ directory by home-manager (hence the `.gitignore` entry).
     lua/main.lua                    waywall scene engine, driven by a cfg table
     nix/pkgs/ninjabrain-bot.nix     the jar, wrapped with its runtime X libs
     nix/pkgs/cps-wl.nix             clicks-per-second layer-shell overlay
+    nix/pkgs/perch.nix              open-to-LAN + dragon-perch ydotool script
     nix/pkgs/mcsr-jdk.nix           Oracle GraalVM 21 + the MCSR JVM args, as passthru
     nix/lib/assets.nix              border/crosshair PNGs, generated from colours
     nix/lib/gen-assets.py           the Pillow script assets.nix runs
@@ -79,9 +80,30 @@ in this directory home-manager owns.
 | `Ctrl-K`      | —      | show/hide Ninjabrain-Bot (starting it if needed) |
 | `Ctrl-7`      | —      | start/stop the CPS overlay                       |
 | `Ctrl-8`      | —      | show/hide the centre crosshair dot               |
+| `Ctrl-9`      | —      | open to LAN with cheats, then perch the dragon   |
 
 `tall` and `lowest` deliberately share one resolution, which is why the engine
 tracks the mode itself instead of using `helpers.res_mirror`.
+
+### One-cycle practice
+
+`Ctrl-9` (`programs.waywall.perch.enable`) pauses, opens the world to LAN with
+cheats on, and types
+
+    /data merge entity @e[type=ender_dragon,limit=1] {DragonPhase:2}
+
+which is phase "fly to the portal and land", so the dragon perches immediately
+instead of finishing its circle. The menu path and the command are both taken
+from [pjagada/minecraftahk](https://github.com/pjagada/minecraftahk) (`OpenToLAN`
+and `Perch`), and hold for 1.16.x; 1.17+ walks the LAN screen differently.
+
+The keys come from ydotool, not wtype: waywall implements neither
+virtual-keyboard-unstable-v1 nor input-method, so a wtype client started inside
+it has nothing to bind to, while ydotool writes to `/dev/uinput` and enters at
+the host compositor. That needs `programs.ydotool.enable = true` on the system
+and the user in `programs.ydotool.group`. For the duration of the script the
+MCSR layout and its remaps are swapped for a plain US keymap, because ydotool
+emits US scancodes and the layout would otherwise scramble the command.
 
 ## Minecraft JVM
 
