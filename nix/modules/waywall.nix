@@ -923,9 +923,12 @@ in {
           with the "/" prefix already in it. 53 is slash, the vanilla bind; 26
           is left bracket.
 
-          It has to match the instance's options.txt. On the wrong key chat
-          never opens and the command is typed into the world instead, where
-          its letters are game binds -- "t" alone throws an item on the ground.
+          It has to match the instance's standardsettings file
+          (config/standardoptions.txt), which is what the bind will be after
+          every reset -- options.txt only holds whatever the current world was
+          left with. On the wrong key chat never opens; the run is then
+          abandoned rather than typed into the world, where the command's
+          letters are game binds and "t" alone throws an item on the ground.
         '';
       };
 
