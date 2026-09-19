@@ -394,18 +394,49 @@ return function(cfg)
 		os.execute(cfg.cps.toggle_command)
 	end
 
-	-- One-cycle practice: hand control to the ydotool script (nix/pkgs/perch.nix)
-	-- for as long as it takes to walk the pause and LAN menus and type the
-	-- dragon command.
+	-- One-cycle practice: open the world to LAN with cheats and put the dragon
+	-- into its perch. The keys come from the ydotool script in nix/pkgs/perch.nix
+	-- (waywall implements no virtual-keyboard protocol, so wtype has nothing to
+	-- bind to, and press_key can hold no modifier), and this drives it a phase at
+	-- a time.
 	--
-	-- The keymap swap around it is the whole trick. ydotool emits evdev
-	-- scancodes as a US keyboard would, but the characters that reach the chat
-	-- box are whatever waywall's active xkb layout makes of them -- so under the
+	-- Phases rather than one script with sleeps in it because opening to LAN
+	-- saves the world first, which blocks the render thread for one to five
+	-- seconds depending on how much there is to save. Keys sent during that
+	-- freeze are dropped, and a dropped command key is not harmless: the command
+	-- then goes into the world, where its letters are game binds. So each step
+	-- waits for state-output to show the game actually got there.
+	--
+	-- The keymap swap around all of it is the other half. ydotool emits evdev
+	-- scancodes as a US keyboard would, but the characters that reach the chat box
+	-- are whatever waywall's active xkb layout makes of them -- so under the
 	-- search-craft layout the command arrives scrambled, and the remaps (0,
-	-- Backspace, the Tab/Grave swap) would eat parts of it outright. A plain
-	-- layout with no remaps is installed for the duration and put back after.
+	-- Backspace, the Tab/Grave swap) would eat parts of it outright.
+	local await = function(predicate, timeout)
+		local deadline = waywall.current_time() + timeout
+		while waywall.current_time() < deadline do
+			if predicate() then
+				return true
+			end
+			waywall.sleep(20)
+		end
+		return false
+	end
+
+	local inworld_is = function(what)
+		return function()
+			local state = waywall.state()
+			return state.screen == "inworld" and state.inworld == what
+		end
+	end
+
 	local perch = function()
 		local active = (layout == "mcsr") and cfg.layouts.mcsr or cfg.layouts.alt
+
+		local restore = function()
+			waywall.set_keymap({ layout = active.layout, variant = active.variant })
+			waywall.set_remaps(active.remaps)
+		end
 
 		waywall.set_remaps({})
 		waywall.set_keymap({
@@ -414,25 +445,48 @@ return function(cfg)
 		})
 		waywall.sleep(cfg.perch.keymap_delay)
 
-		waywall.exec(cfg.perch.command)
+		-- Pause, walk the menus, start the LAN world.
+		waywall.exec(cfg.perch.command .. " lan")
 
-		-- waywall.exec is asynchronous and gives back no handle, so the script
-		-- touches a file when it is done typing. Restoring the layout early
-		-- would cut the command in half, and never restoring it would leave the
-		-- game unplayable, hence the poll with a deadline.
-		local deadline = waywall.current_time() + cfg.perch.timeout
-		while waywall.current_time() < deadline do
-			local done = io.open(cfg.perch.done_file, "r")
-			if done then
-				done:close()
-				os.remove(cfg.perch.done_file)
-				break
-			end
-			waywall.sleep(25)
+		-- The pause menu going up says the first keys landed; the world coming
+		-- back unpaused says the LAN server is open and the save has finished.
+		if not await(function()
+			return not inworld_is("unpaused")()
+		end, cfg.perch.menu_timeout) then
+			print("perch: pause menu never appeared")
+			return restore()
 		end
 
-		waywall.set_keymap({ layout = active.layout, variant = active.variant })
-		waywall.set_remaps(active.remaps)
+		if not await(inworld_is("unpaused"), cfg.perch.lan_timeout) then
+			print("perch: world never came back from opening to LAN")
+			return restore()
+		end
+
+		-- Chat has to be confirmed open before anything is typed: into the world
+		-- instead, "t" alone throws an item on the ground.
+		waywall.exec(cfg.perch.command .. " chat")
+
+		if not await(inworld_is("menu"), cfg.perch.menu_timeout) then
+			print("perch: chat did not open; is perch.commandKey key_key.command?")
+			return restore()
+		end
+
+		waywall.exec(cfg.perch.command .. " type")
+
+		-- waywall.exec is asynchronous and gives back no handle, so the script
+		-- touches a file when it is done typing. Restoring the layout early would
+		-- cut the command in half.
+		await(function()
+			local done = io.open(cfg.perch.done_file, "r")
+			if not done then
+				return false
+			end
+			done:close()
+			os.remove(cfg.perch.done_file)
+			return true
+		end, cfg.perch.type_timeout)
+
+		restore()
 	end
 
 	local crosshair_shown = false

@@ -15,6 +15,13 @@
 # only 1.17+ needs a different *menu* path (one more Tab), which is what the
 # shift-tab counts below are for.
 #
+# It runs in three phases, driven by lua/main.lua, because the steps in
+# between cannot be timed blind: opening to LAN saves the world first and
+# blocks the render thread for anywhere from one to five seconds, and keys sent
+# during that freeze are simply lost. The Lua side watches state-output for the
+# game to come back and for chat to actually open, and only then asks for the
+# next phase.
+#
 # The input has to come from ydotool rather than wtype: waywall implements
 # neither virtual-keyboard-unstable-v1 nor input-method (its server/ directory
 # has no such file), so a wtype client started inside waywall finds no protocol
@@ -30,7 +37,6 @@
   pauseShiftTabs,
   lanShiftTabs,
   screenDelay,
-  hostDelay,
   commandKey,
   doneFile,
   keyDelay,
@@ -49,12 +55,15 @@ writeShellApplication {
     done_file=${lib.escapeShellArg doneFile}
     dragon_command=${lib.escapeShellArg dragonCommand}
 
-    # The caller (lua/main.lua) waits on this file to know when it is safe to
-    # put the MCSR keymap back, so it must not be left over from a past run.
-    rm -f "$done_file"
+    # The caller (lua/main.lua) waits on this file to know when the typing is
+    # done and the MCSR keymap can go back, so it must not be left over from a
+    # past run.
+    if [ "''${1:-}" = lan ]; then
+      rm -f "$done_file"
+    fi
 
     # Keycodes are evdev, from linux/input-event-codes.h:
-    #   Esc 1, Tab 15, Enter 28, LeftShift 42, Slash 53.
+    #   Esc 1, Tab 15, Enter 28, LeftShift 42.
     key() { ydotool key --key-delay ${toString keyDelay} "$@"; }
 
     # sleep(1) wants seconds; every delay here is configured in milliseconds.
@@ -70,40 +79,46 @@ writeShellApplication {
       key "''${args[@]}"
     }
 
-    # Pause menu. Shift-Tab walks up from the bottom of the button list, so the
-    # count depends on what mods have added to that screen (fast-reset adds one).
-    key 1:1 1:0
-    ms ${toString screenDelay}
-    shift_tab ${toString pauseShiftTabs}
-    key 28:1 28:0
+    case "''${1:-}" in
+    lan)
+      # Pause menu. Shift-Tab walks up from the bottom of the button list, so
+      # the count depends on what mods have added to that screen (fast-reset
+      # adds one).
+      key 1:1 1:0
+      ms ${toString screenDelay}
+      shift_tab ${toString pauseShiftTabs}
+      key 28:1 28:0
 
-    # LAN screen: toggle "Allow Cheats" on, then Tab onto "Start LAN World".
-    ms ${toString screenDelay}
-    shift_tab ${toString lanShiftTabs}
-    key 28:1 28:0
-    ms ${toString screenDelay}
-    key 15:1 15:0
-    key 28:1 28:0
+      # LAN screen: toggle "Allow Cheats" on, then Tab onto "Start LAN World".
+      ms ${toString screenDelay}
+      shift_tab ${toString lanShiftTabs}
+      key 28:1 28:0
+      ms ${toString screenDelay}
+      key 15:1 15:0
+      key 28:1 28:0
+      ;;
+    chat)
+      # Opens chat with the "/" prefix already in it. This is whatever
+      # key_key.command is bound to, not necessarily slash -- and the caller
+      # checks that a screen actually opened before asking for the next phase,
+      # because typing into the world instead is not a no-op: the command's
+      # letters are game binds, and "t" throws an item on the ground.
+      key ${toString commandKey}:1 ${toString commandKey}:0
+      ;;
+    type)
+      # Chat is open and holding the slash, so this is the command without it.
+      ydotool type --key-delay ${toString keyDelay} "$dragon_command"
+      key 28:1 28:0
+      ;;
+    *)
+      echo "usage: $0 lan|chat|type" >&2
+      exit 1
+      ;;
+    esac
 
-    # Typing the command before the integrated server is up loses it. Watching
-    # the log for "Local game hosted on port" would be the exact signal, but it
-    # costs seconds to notice; opening to LAN is local and takes a fraction of
-    # that, so this waits on the clock instead.
-    ms ${toString hostDelay}
-
-    # The command key opens chat already holding the "/" prefix, so the text
-    # typed below is the command without its leading slash.
-    #
-    # This is whatever key_key.command is bound to, not necessarily slash. Get
-    # it wrong and chat never opens, which is not a no-op: the command is then
-    # typed into the world, where its letters are game binds and "t" throws an
-    # item on the ground.
-    key ${toString commandKey}:1 ${toString commandKey}:0
-    ms ${toString screenDelay}
-    ydotool type --key-delay ${toString keyDelay} "$dragon_command"
-    key 28:1 28:0
-
-    : > "$done_file"
+    if [ "''${1:-}" = type ]; then
+      : > "$done_file"
+    fi
   '';
 
   meta = {

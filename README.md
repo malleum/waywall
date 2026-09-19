@@ -97,6 +97,12 @@ instead of finishing its circle. The menu path and the command are both taken
 from [pjagada/minecraftahk](https://github.com/pjagada/minecraftahk) (`OpenToLAN`
 and `Perch`), and hold for 1.16.x; 1.17+ walks the LAN screen differently.
 
+It runs in phases against state-output rather than on a timer: opening to LAN
+saves the world first, which blocks the render thread for one to five seconds,
+and every key sent during that freeze is lost. Each step waits for the game to
+report that it got there -- and chat must actually be open before anything is
+typed, since into the world instead the command's letters are game binds.
+
 The keys come from ydotool, not wtype: waywall implements neither
 virtual-keyboard-unstable-v1 nor input-method, so a wtype client started inside
 it has nothing to bind to, while ydotool writes to `/dev/uinput` and enters at

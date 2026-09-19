@@ -151,7 +151,6 @@
       pauseShiftTabs
       lanShiftTabs
       screenDelay
-      hostDelay
       commandKey
       doneFile
       keyDelay
@@ -348,7 +347,9 @@
       inherit (cfg.perch) enable;
       command = lib.getExe perchScript;
       done_file = cfg.perch.doneFile;
-      timeout = cfg.perch.hostDelay + 5000;
+      menu_timeout = cfg.perch.menuTimeout;
+      lan_timeout = cfg.perch.lanTimeout;
+      type_timeout = cfg.perch.typeTimeout;
       typing_layout = cfg.perch.typingLayout;
       typing_variant = cfg.perch.typingVariant;
       keymap_delay = cfg.perch.keymapDelay;
@@ -884,18 +885,33 @@ in {
         '';
       };
 
-      hostDelay = lib.mkOption {
+      menuTimeout = lib.mkOption {
         type = lib.types.ints.positive;
-        default = 500;
+        default = 2000;
         description = ''
-          Milliseconds waited for the integrated server after "Start LAN World",
-          before the command is typed. Typing early loses the command.
-
-          Watching latest.log for "Local game hosted on port" is the exact
-          signal and was what this did at first, but noticing the line cost
-          about four seconds; opening to LAN is local and takes a fraction of
-          that, so it waits on the clock instead.
+          Milliseconds allowed for a screen to open -- the pause menu at the
+          start, and chat at the end. Running out means the keys did not land
+          where they were supposed to, and the run is abandoned rather than
+          typed into the world.
         '';
+      };
+
+      lanTimeout = lib.mkOption {
+        type = lib.types.ints.positive;
+        default = 15000;
+        description = ''
+          Milliseconds allowed for the world to come back after "Start LAN
+          World". This is not a delay -- state-output says when the game is
+          back, usually in about a second -- but opening to LAN saves the world
+          first, which has taken as long as five seconds here, and the render
+          thread drops every key while it does.
+        '';
+      };
+
+      typeTimeout = lib.mkOption {
+        type = lib.types.ints.positive;
+        default = 5000;
+        description = "Milliseconds allowed for the command to finish typing.";
       };
 
       commandKey = lib.mkOption {
